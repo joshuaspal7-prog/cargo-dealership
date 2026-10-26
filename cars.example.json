@@ -1,0 +1,13 @@
+[
+  {
+    "year": 2019,
+    "make": "Honda",
+    "model": "Civic",
+    "price": 21995,
+    "km": 64000,
+    "desc": "One owner, clean interior, new brakes.",
+    "img": "images/civic.jpg",
+    "carfax": "carfax/civic.pdf",
+    "sold": false
+  }
+]

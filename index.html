@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Car-Go Dealership Inc. | Quality Used Cars in Hamilton, ON</title>
+<style>
+:root{--bg:#f6f8fb;--card:#fff;--ink:#14213d;--mute:#5b6577;--brand:#c8102e;--brand2:#8f0b20;--accent:#e11d2e;--line:#e3e8ef;--foot:#0b0b0f;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0d1424;--card:#16203a;--ink:#eaf0fb;--mute:#9aa7bf;--brand:#ff4d5e;--brand2:#e03346;--line:#243152;--foot:#050507}}
+:root[data-theme="dark"]{--bg:#0d1424;--card:#16203a;--ink:#eaf0fb;--mute:#9aa7bf;--brand:#ff4d5e;--brand2:#e03346;--line:#243152;--foot:#050507}
+*{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:70px}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;line-height:1.55}
+a{color:inherit}
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--card);border-bottom:1px solid var(--line)}
+.bar{max-width:1100px;margin:auto;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.logo{font-weight:800;font-size:1.3rem;letter-spacing:-.5px;text-decoration:none}.logo span{color:var(--brand)}
+nav{display:flex;gap:18px;flex-wrap:wrap}nav a{text-decoration:none;font-weight:600;font-size:.95rem;color:var(--mute)}nav a:hover{color:var(--brand)}
+.hero{background:linear-gradient(135deg,#0b0b0f,#1c1c24 55%,#5c0a16);color:#fff;text-align:center;padding:80px 20px 90px}
+.hero h1{font-size:clamp(2rem,5vw,3.4rem);margin:0 0 12px;letter-spacing:-1px}
+.hero p{max-width:620px;margin:0 auto 28px;font-size:1.15rem;opacity:.92}
+.btn{display:inline-block;border:0;border-radius:10px;padding:13px 26px;font-weight:700;font-size:1rem;cursor:pointer;text-decoration:none;background:var(--accent);color:#fff}
+.btn:hover{filter:brightness(1.07)}.btn.alt{background:var(--brand);color:#fff}.btn.sm{padding:8px 14px;font-size:.85rem}.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--mute)}
+.perks{max-width:1100px;margin:-40px auto 0;padding:0 20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+.perk{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;box-shadow:0 6px 20px rgba(0,0,0,.08)}.perk b{display:block;margin-bottom:4px}.perk span{color:var(--mute);font-size:.92rem}
+section{max-width:1100px;margin:auto;padding:60px 20px 10px}
+h2{font-size:1.9rem;margin:0 0 6px;letter-spacing:-.5px}.sub{color:var(--mute);margin:0 0 26px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:20px}
+.car{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
+.pic{height:170px;background:linear-gradient(135deg,#ececf0,#d5d5dc);display:flex;align-items:center;justify-content:center;font-size:3.4rem;overflow:hidden}
+.pic img{width:100%;height:100%;object-fit:cover}
+.cb{padding:16px;display:flex;flex-direction:column;gap:6px;flex:1}.cb h3{margin:0;font-size:1.1rem}
+.price{font-size:1.4rem;font-weight:800;color:var(--brand)}.meta{color:var(--mute);font-size:.9rem}.cb p{margin:2px 0 8px;font-size:.92rem}
+.tag{display:inline-block;background:var(--accent);color:#fff;font-size:.72rem;font-weight:800;border-radius:6px;padding:2px 8px;width:fit-content}
+.empty{grid-column:1/-1;text-align:center;color:var(--mute);background:var(--card);border:1px dashed var(--line);border-radius:14px;padding:40px 20px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:24px}
+form{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+label{display:flex;flex-direction:column;font-size:.82rem;font-weight:600;color:var(--mute);gap:4px}.wide{grid-column:1/-1}
+input,textarea,select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px;width:100%}
+textarea{min-height:80px;resize:vertical}
+.rev{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}.stars{color:var(--accent);letter-spacing:2px}.rev b{margin-right:6px}.rev small{color:var(--mute)}
+.note{font-size:.85rem;color:var(--mute);margin-top:8px}
+footer{background:var(--foot);color:#d6deee;margin-top:70px;padding:50px 20px 24px}
+.fg{max-width:1100px;margin:auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:30px}
+footer h4{color:#fff;margin:0 0 10px}footer a{text-decoration:none}footer a:hover{color:var(--accent)}
+.copy{max-width:1100px;margin:30px auto 0;padding-top:18px;border-top:1px solid #2a2a33;font-size:.85rem;color:#8d9bb8}
+.heroLogo{width:min(260px,70vw);border-radius:22px;box-shadow:0 12px 40px rgba(0,0,0,.45);margin:0 auto 26px;display:block}
+.about{display:grid;grid-template-columns:1.3fr 1fr;gap:30px;align-items:center}
+.about p{font-size:1.05rem;color:var(--ink);margin:0 0 14px}
+.vals{display:grid;gap:14px}.val{background:var(--card);border:1px solid var(--line);border-left:5px solid var(--brand);border-radius:12px;padding:16px 18px}.val b{display:block;margin-bottom:2px}.val span{color:var(--mute);font-size:.93rem}
+.cfx{display:inline-flex;align-items:center;gap:6px;width:fit-content;font-size:.85rem;font-weight:700;text-decoration:none;color:var(--brand);border:1px solid var(--brand);border-radius:8px;padding:6px 10px;margin-bottom:8px}.cfx:hover{background:var(--brand);color:#fff}
+.flogo{width:90px;border-radius:12px;margin-bottom:12px}
+@media(max-width:760px){.about{grid-template-columns:1fr}}
+.hide{display:none}
+</style>
+</head>
+<body>
+<header><div class="bar"><a class="logo" href="#top">Car-<span>Go</span> Dealership</a>
+<nav><a href="#about">About</a><a href="#inventory">Inventory</a><a href="#reviews">Reviews</a><a href="#contact">Contact</a></nav></div></header>
+
+<div id="top" class="hero">
+<img class="heroLogo" src="logo.jpg" alt="Car-Go Dealership Inc. logo">
+<h1>Find your next ride at Car-Go</h1>
+<p>Quality pre-owned vehicles, honest pricing, and friendly service in the heart of Hamilton.</p>
+<a class="btn" href="#inventory">Browse our cars</a>
+</div>
+
+<div class="perks">
+<div class="perk"><b>Quality checked</b><span>Every vehicle is inspected before it hits our lot.</span></div>
+<div class="perk"><b>Honest pricing</b><span>Clear, upfront prices with no pressure.</span></div>
+<div class="perk"><b>Friendly service</b><span>Visit, call or email. We’re happy to help.</span></div>
+</div>
+
+<section id="about">
+<h2>About Car-Go</h2>
+<p class="sub">A dealership built on passion, family and trust.</p>
+<div class="about">
+<div>
+<p>Car-Go Dealership Inc. was started by a young entrepreneur who has loved cars for as long as he can remember. Growing up, he watched his father run a car dealership back in Syria, and he rolled up his sleeves early, helping maintain the vehicles and sell them to customers.</p>
+<p>Those years taught him that a great dealership is about more than cars. It’s about people. His passion only grew stronger with time, and it led him to open Car-Go Dealership Inc. here in Hamilton.</p>
+<p><b>Our mission is simple:</b> sell quality cars with honesty and transparency, and give every customer a good vibe, so everyone who walks through our door feels welcomed and safe.</p>
+<a class="btn alt" href="#contact">Come say hello</a>
+</div>
+<div class="vals">
+<div class="val"><b>Honesty</b><span>Straight answers about every vehicle, good and bad.</span></div>
+<div class="val"><b>Transparency</b><span>Clear pricing with no surprises or pressure.</span></div>
+<div class="val"><b>Good vibes</b><span>A relaxed, friendly place where you’re treated like family.</span></div>
+</div></div>
+</section>
+
+<section id="inventory">
+<h2>Current inventory</h2>
+<p class="sub">Fresh arrivals, ready for a test drive.</p>
+<div id="cars" class="grid"><div class="empty">Loading inventory…</div></div>
+</section>
+
+<section id="reviews">
+<h2>What our customers say</h2>
+<p class="sub">Bought from us? We’d love to hear about your experience.</p>
+<div class="panel" id="revPanel"><b>Bought a car from us?</b> We’d love to hear how it went. <div style="margin-top:12px"><a class="btn alt" href="mailto:CarGodealership@gmail.com?subject=My%20Car-Go%20review">Send us your review</a></div></div>
+<div id="revs" class="grid"><div class="empty">Loading reviews…</div></div>
+</section>
+
+<footer id="contact"><div class="fg">
+<div><img class="flogo" src="logo.jpg" alt="Car-Go logo"><h4>Car-Go Dealership Inc.</h4><p>Your trusted Hamilton dealership for quality pre-owned vehicles.</p></div>
+<div><h4>Visit us</h4><p>257 Centennial Pkwy N<br>Hamilton, ON L8E 2X3</p></div>
+<div><h4>Get in touch</h4><p>Phone: <a href="tel:4168438036">416-843-8036</a><br>Email: <a href="mailto:CarGodealership@gmail.com">CarGodealership@gmail.com</a></p></div>
+</div><div class="copy">© 2026 Car-Go Dealership Inc. All rights reserved.</div></footer>
+
+<script>
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const safe=u=>/^(https?:\/\/|[\w\-./]+$)/i.test(u||"")?esc(u):"";
+async function load(f){try{const r=await fetch(f,{cache:"no-store"});return r.ok?await r.json():[]}catch(e){return null}}
+(async()=>{
+  const cars=await load("cars.json"),revs=await load("reviews.json");
+  const ce=$("#cars");
+  if(cars===null)ce.innerHTML='<div class="empty">Call 416-843-8036 to hear what’s on the lot.</div>';
+  else if(!cars.length)ce.innerHTML='<div class="empty">New vehicles are coming soon. Call us at 416-843-8036 to ask what’s arriving.</div>';
+  else ce.innerHTML=cars.map(d=>`<div class="car"><div class="pic">${d.img?`<img src="${safe(d.img)}" alt="">`:"🚗"}</div><div class="cb">
+  ${d.sold?'<span class="tag">SOLD</span>':''}<h3>${esc(d.year)} ${esc(d.make)} ${esc(d.model)}</h3>
+  <div class="price">$${Number(d.price||0).toLocaleString("en-CA")}</div>
+  ${d.km?`<div class="meta">${Number(d.km).toLocaleString("en-CA")} km</div>`:""}
+  <p>${esc(d.desc)}</p>
+  ${d.carfax?`<a class="cfx" href="${safe(d.carfax)}" target="_blank" rel="noopener">✔ View CARFAX® report</a>`:""}
+  <a class="btn alt sm" href="mailto:CarGodealership@gmail.com?subject=${encodeURIComponent("Inquiry: "+d.year+" "+d.make+" "+d.model)}">Ask about this car</a>
+  </div></div>`).join("");
+  const re=$("#revs");
+  if(!revs||!revs.length)re.innerHTML='<div class="empty">Reviews are coming soon.</div>';
+  else re.innerHTML=revs.map(r=>`<div class="rev"><div class="stars">${"★".repeat(r.rating)}${"☆".repeat(5-r.rating)}</div><p>${esc(r.text)}</p><b>${esc(r.name)}</b><small>${esc(r.date)}</small></div>`).join("");
+})();
+</script>
+</body>
+</html>
