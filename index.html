@@ -125,6 +125,7 @@ footer h4{color:#fff;margin:0 0 10px}footer a{text-decoration:none}footer a:hove
 <script>
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const mail=d=>{const sub="Inquiry: "+d.year+" "+d.make+" "+d.model;return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)?"mailto:CarGodealership@gmail.com?subject="+encodeURIComponent(sub):"https://mail.google.com/mail/?view=cm&fs=1&to=CarGodealership@gmail.com&su="+encodeURIComponent(sub)};
 const money=v=>Number(v)>0?"$"+Number(v).toLocaleString("en-CA"):"Call for price";
 const safe=u=>/^(https?:\/\/|[\w\-./]+$)/i.test(u||"")?esc(u):"";
 async function load(f){try{const r=await fetch(f,{cache:"no-store"});return r.ok?await r.json():[]}catch(e){return null}}
@@ -140,7 +141,7 @@ async function load(f){try{const r=await fetch(f,{cache:"no-store"});return r.ok
   <p>${esc(d.desc)}</p>
   <span class="more">View details →</span>
   ${d.carfax?`<a class="cfx" href="${safe(d.carfax)}" target="_blank" rel="noopener">✔ View CARFAX® report</a>`:""}
-  <a class="btn alt sm" href="mailto:CarGodealership@gmail.com?subject=${encodeURIComponent("Inquiry: "+d.year+" "+d.make+" "+d.model)}">Ask about this car</a>
+  <a class="btn alt sm" href="${mail(d)}" target="_blank" rel="noopener">Ask about this car</a>
   </div></div>`).join("");
   if(cars&&cars.length){
     const SP=[["Year","year"],["Make","make"],["Model","model"],["Trim","trim"],["Body style","body"],["Kilometres","km"],["Colour","color"],["Interior","interior"],["Transmission","transmission"],["Fuel","fuel"],["Drivetrain","drivetrain"],["VIN","vin"]];
@@ -158,7 +159,7 @@ async function load(f){try{const r=await fetch(f,{cache:"no-store"});return r.ok
       ${d.desc?`<p style="margin:0 0 6px">${esc(d.desc)}</p>`:""}
       <div class="specs">${specs}</div>${feats}
       <div class="dact">${d.carfax?`<a class="btn alt" href="${safe(d.carfax)}" target="_blank" rel="noopener">✔ View CARFAX® report</a>`:""}
-      <a class="btn" href="mailto:CarGodealership@gmail.com?subject=${encodeURIComponent("Inquiry: "+d.year+" "+d.make+" "+d.model)}">Email about this car</a>
+      <a class="btn" href="${mail(d)}" target="_blank" rel="noopener">Email about this car</a>
       <a class="btn ghost" href="tel:4168438036">Call 416-843-8036</a></div></div>`;
       body.querySelectorAll(".thumbs img").forEach(t=>t.addEventListener("click",()=>{$("#dmain").innerHTML=`<img src="${t.src}" alt="">`;body.querySelectorAll(".thumbs img").forEach(x=>x.classList.toggle("on",x===t))}));
       dlg.classList.add("open");dlg.scrollTop=0;document.body.style.overflow="hidden";$("#dx").focus();
