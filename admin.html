@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Car-Go Admin</title>
+<style>
+:root{--bg:#f6f8fb;--card:#fff;--ink:#14213d;--mute:#5b6577;--brand:#c8102e;--line:#e3e8ef;--ok:#0a7d3b;--err:#b00020}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0d1424;--card:#16203a;--ink:#eaf0fb;--mute:#9aa7bf;--brand:#ff4d5e;--line:#243152;--ok:#4cd98a;--err:#ff7a8a}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;line-height:1.5}
+header{background:#0b0b0f;color:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+header b{font-size:1.1rem}header b span{color:#ff4d5e}
+header a{color:#cfd6e6;font-size:.9rem}
+main{max-width:860px;margin:0 auto;padding:20px 16px 60px}
+h2{margin:26px 0 10px;font-size:1.35rem}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:18px}
+.btn{display:inline-block;border:0;border-radius:10px;padding:11px 20px;font:inherit;font-weight:700;cursor:pointer;background:var(--brand);color:#fff}
+.btn:disabled{opacity:.55;cursor:wait}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn.sm{padding:7px 12px;font-size:.85rem}
+form{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+label{display:flex;flex-direction:column;font-size:.82rem;font-weight:600;color:var(--mute);gap:4px}
+.wide{grid-column:1/-1}
+input,textarea,select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px;width:100%}
+textarea{min-height:90px;resize:vertical}
+.note{font-size:.85rem;color:var(--mute)}
+#msg{position:sticky;top:0;z-index:5;margin:0 0 14px;padding:12px 14px;border-radius:10px;font-weight:600;display:none}
+#msg.ok{display:block;background:#e6f6ec;color:#0a5a2b;border:1px solid #9bd7b4}
+#msg.err{display:block;background:#fde8eb;color:#8a0019;border:1px solid #f1a5b0}
+#msg.work{display:block;background:#eef2fb;color:#1c3a8a;border:1px solid #b9c7ee}
+.list{display:grid;gap:12px}
+.row{display:flex;gap:12px;align-items:center;flex-wrap:wrap;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px}
+.row img,.row .ph{width:92px;height:68px;object-fit:cover;border-radius:8px;background:#ddd;flex:none;display:flex;align-items:center;justify-content:center;font-size:1.6rem}
+.row .info{flex:1;min-width:150px}.row .info b{display:block}
+.row .acts{display:flex;gap:8px;flex-wrap:wrap}
+.tag{background:var(--brand);color:#fff;border-radius:6px;font-size:.7rem;font-weight:800;padding:2px 7px;margin-left:6px}
+.thumbs{display:flex;gap:10px;flex-wrap:wrap}
+.th{position:relative;width:96px}
+.th img{width:96px;height:72px;object-fit:cover;border-radius:8px;display:block}
+.th small{display:block;text-align:center;font-size:.72rem;color:var(--mute)}
+.th button{position:absolute;top:-6px;right:-6px;width:24px;height:24px;border-radius:50%;border:0;background:#000b;color:#fff;cursor:pointer;line-height:1}
+.th .mk{position:static;width:auto;height:auto;border-radius:6px;padding:2px 6px;font-size:.7rem;margin-top:3px;width:100%}
+.hide{display:none}
+ol{padding-left:20px}ol li{margin-bottom:6px}
+code{background:var(--bg);border:1px solid var(--line);border-radius:5px;padding:1px 5px;font-size:.88em}
+</style>
+</head>
+<body>
+<header><b>Car-<span>Go</span> Admin</b><span><a href="./" id="siteLink">View website</a> &nbsp; <a href="#" id="signout" class="hide">Remove key from this device</a></span></header>
+<main>
+<div id="msg" role="status"></div>
+
+<section id="setup" class="panel hide">
+  <h2 style="margin-top:0">First-time setup (about 3 minutes)</h2>
+  <p class="note">This page saves your cars straight to your website. To do that, it needs a GitHub access key. You create it once, and it stays only on this phone or computer. Never send the key to anyone.</p>
+  <ol>
+    <li>On this device, open <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">github.com/settings/personal-access-tokens/new</a> and sign in.</li>
+    <li><b>Token name:</b> <code>Car-Go admin</code>. <b>Expiration:</b> pick the longest option offered.</li>
+    <li><b>Repository access:</b> choose <b>Only select repositories</b>, then pick <code>cargo-dealership</code>.</li>
+    <li>Under <b>Permissions</b>, click <b>Repository permissions</b>, find <b>Contents</b> and set it to <b>Read and write</b>.</li>
+    <li>Click <b>Generate token</b>, copy the key (it starts with <code>github_pat_</code>) and paste it below.</li>
+  </ol>
+  <label>Paste your key here<input id="tok" type="password" autocomplete="off" placeholder="github_pat_..."></label>
+  <p><button class="btn" id="saveTok" type="button">Save key and continue</button></p>
+</section>
+
+<section id="app" class="hide">
+  <h2 id="formTitle" style="margin-top:0">Add a car</h2>
+  <div class="panel">
+    <form id="carForm" autocomplete="off">
+      <label>Year *<input name="year" type="number" min="1950" max="2100" required></label>
+      <label>Make *<input name="make" required placeholder="Honda"></label>
+      <label>Model *<input name="model" required placeholder="CR-V"></label>
+      <label>Trim<input name="trim" placeholder="LX AWD"></label>
+      <label>Body style<input name="body" placeholder="SUV"></label>
+      <label>Price ($)<input name="price" type="number" min="0" step="1" placeholder="Leave empty for “Call for price”"></label>
+      <label>Kilometres<input name="km" type="number" min="0" step="1"></label>
+      <label>Colour<input name="color"></label>
+      <label>Interior<input name="interior" placeholder="Black cloth"></label>
+      <label>Transmission<input name="transmission" placeholder="Automatic"></label>
+      <label>Fuel<input name="fuel" placeholder="Gasoline"></label>
+      <label>Drivetrain<input name="drivetrain" placeholder="AWD"></label>
+      <label class="wide">VIN<input name="vin" maxlength="17"></label>
+      <label class="wide">Description<textarea name="desc" placeholder="A short, honest description of the car."></textarea></label>
+      <label class="wide">Features (one per line)<textarea name="features" placeholder="Heated seats&#10;Backup camera&#10;Bluetooth"></textarea></label>
+
+      <div class="wide">
+        <b style="font-size:.9rem">Photos</b> <span class="note">The first photo is the main picture.</span>
+        <div id="oldPhotos" class="thumbs" style="margin:8px 0"></div>
+        <input id="photos" type="file" accept="image/*" multiple>
+        <div id="newPhotos" class="thumbs" style="margin-top:8px"></div>
+      </div>
+      <div class="wide">
+        <b style="font-size:.9rem">CARFAX report (PDF)</b>
+        <div id="oldCarfax" class="note" style="margin:6px 0"></div>
+        <input id="carfax" type="file" accept="application/pdf,.pdf">
+      </div>
+      <div class="wide"><label style="flex-direction:row;align-items:center;gap:8px;font-size:.95rem;color:var(--ink)"><input id="sold" name="sold" type="checkbox" style="width:auto"> Mark as SOLD</label></div>
+      <div class="wide">
+        <button class="btn" id="saveBtn" type="submit">Add car</button>
+        <button class="btn ghost hide" id="cancelBtn" type="button">Cancel editing</button>
+        <p class="note" id="hint">Saving takes a few seconds. Your website updates about 1 to 2 minutes later.</p>
+      </div>
+    </form>
+  </div>
+
+  <h2>Cars on your website</h2>
+  <div id="list" class="list"><div class="note">Loading…</div></div>
+</section>
+</main>
+
+<script>
+const OWNER="joshuaspal7-prog",REPO="cargo-dealership",BRANCH="main";
+const API=`https://api.github.com/repos/${OWNER}/${REPO}`;
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+let token="";try{token=localStorage.getItem("cargo_admin_key")||""}catch(e){}
+let cars=[],editing=null,keepPhotos=[],keepCarfax="",newPhotos=[]; // newPhotos: {blob,url}
+let busy=false;
+
+function msg(t,kind){const m=$("#msg");m.className=kind||"";m.textContent=t||"";if(!t)m.className=""}
+
+async function gh(path,opts={}){
+  const r=await fetch(API+path,{...opts,cache:"no-store",headers:{Authorization:"Bearer "+token,Accept:"application/vnd.github+json","X-GitHub-Api-Version":"2022-11-28",...(opts.body?{"Content-Type":"application/json"}:{}),...(opts.headers||{})}});
+  if(!r.ok){let m="";try{m=(await r.json()).message}catch(e){}const e=new Error(m||r.statusText);e.status=r.status;throw e}
+  return r.status===204?null:r.json();
+}
+const friendly=e=>e.status===401?"GitHub didn't accept the key. It may have expired. Remove the key from this device and add a new one."
+  :e.status===403||e.status===404?"This key doesn't have permission for your website. Re-create it with access to cargo-dealership and Contents set to Read and write."
+  :/fast forward|reference/i.test(e.message||"")?"Your website changed while saving. Please try again."
+  :"Something went wrong: "+(e.message||"unknown error");
+
+function b64ToText(b64){const bin=atob(b64.replace(/\s/g,""));const bytes=Uint8Array.from(bin,c=>c.charCodeAt(0));return new TextDecoder().decode(bytes)}
+function textToB64(t){const bytes=new TextEncoder().encode(t);let s="";bytes.forEach(b=>s+=String.fromCharCode(b));return btoa(s)}
+function blobToB64(blob){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(",")[1]);r.onerror=()=>rej(new Error("Couldn't read the file"));r.readAsDataURL(blob)})}
+
+async function fetchCars(){
+  try{const f=await gh(`/contents/cars.json?ref=${BRANCH}&_=${Date.now()}`);const t=b64ToText(f.content).trim();const d=t?JSON.parse(t):[];return Array.isArray(d)?d:[]}
+  catch(e){if(e.status===404)return[];throw e}
+}
+
+// Save one change as a single commit: files = [{path,b64}], deletes = [paths]
+async function commit(files,deletes,message){
+  const ref=await gh(`/git/ref/heads/${BRANCH}`);const base=ref.object.sha;
+  const bc=await gh(`/git/commits/${base}`);
+  const existing=new Set(((await gh(`/git/trees/${bc.tree.sha}?recursive=1`)).tree||[]).map(t=>t.path));
+  const tree=[];
+  for(const f of files){const b=await gh("/git/blobs",{method:"POST",body:JSON.stringify({content:f.b64,encoding:"base64"})});tree.push({path:f.path,mode:"100644",type:"blob",sha:b.sha})}
+  for(const p of deletes){if(existing.has(p)&&!files.some(f=>f.path===p))tree.push({path:p,mode:"100644",type:"blob",sha:null})}
+  const nt=await gh("/git/trees",{method:"POST",body:JSON.stringify({base_tree:bc.tree.sha,tree})});
+  const nc=await gh("/git/commits",{method:"POST",body:JSON.stringify({message,tree:nt.sha,parents:[base]})});
+  await gh(`/git/refs/heads/${BRANCH}`,{method:"PATCH",body:JSON.stringify({sha:nc.sha})});
+}
+
+async function toJpeg(file){
+  const url=URL.createObjectURL(file);
+  try{
+    const img=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=()=>rej(new Error("unreadable"));i.src=url});
+    const s=Math.min(1,1600/Math.max(img.naturalWidth,img.naturalHeight));
+    const c=document.createElement("canvas");c.width=Math.round(img.naturalWidth*s);c.height=Math.round(img.naturalHeight*s);
+    c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+    return await new Promise(r=>c.toBlob(r,"image/jpeg",0.82));
+  }finally{URL.revokeObjectURL(url)}
+}
+
+function setBusy(b){busy=b;$("#saveBtn").disabled=b;$("#cancelBtn").disabled=b;document.querySelectorAll("#list button").forEach(x=>x.disabled=b)}
+
+function carTitle(c){return `${c.year||""} ${c.make||""} ${c.model||""}${c.trim?" "+c.trim:""}`.trim()}
+function money(v){return Number(v)>0?"$"+Number(v).toLocaleString("en-CA"):"Call for price"}
+function safePath(p){return typeof p==="string"&&p&&!p.startsWith("/")&&!p.includes("..")&&!/^https?:/i.test(p)}
+
+function renderList(){
+  const el=$("#list");
+  if(!cars.length){el.innerHTML='<div class="note">No cars yet. Add your first one above.</div>';return}
+  el.innerHTML=cars.map((c,i)=>{
+    const img=(Array.isArray(c.photos)&&c.photos[0])||c.img||"";
+    return `<div class="row">${img&&safePath(img)?`<img src="${esc(img)}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'ph',textContent:'🚗'}))">`:'<div class="ph">🚗</div>'}
+    <div class="info"><b>${esc(carTitle(c))}${c.sold?'<span class="tag">SOLD</span>':""}</b><span class="note">${esc(money(c.price))}${c.km?" · "+Number(c.km).toLocaleString("en-CA")+" km":""}</span></div>
+    <div class="acts"><button class="btn ghost sm" data-act="edit" data-i="${i}">Edit</button><button class="btn ghost sm" data-act="sold" data-i="${i}">${c.sold?"Mark available":"Mark sold"}</button><button class="btn ghost sm" data-act="del" data-i="${i}">Remove</button></div></div>`}).join("");
+}
+
+function renderThumbs(){
+  $("#oldPhotos").innerHTML=keepPhotos.map((p,i)=>`<div class="th"><img src="${esc(p)}" alt=""><button type="button" data-k="${i}" aria-label="Remove photo">×</button>${i===0?"<small>Main</small>":`<button type="button" class="mk" data-mk="${i}">Make main</button>`}</div>`).join("");
+  $("#newPhotos").innerHTML=newPhotos.map((p,i)=>`<div class="th"><img src="${p.url}" alt=""><button type="button" data-n="${i}" aria-label="Remove photo">×</button><small>${keepPhotos.length===0&&i===0?"Main":"New"}</small></div>`).join("");
+  $("#oldCarfax").innerHTML=keepCarfax?`Current report: <code>${esc(keepCarfax.split("/").pop())}</code> <button type="button" class="btn ghost sm" id="rmCarfax">Remove</button>`:"";
+}
+
+function resetForm(){
+  editing=null;keepPhotos=[];keepCarfax="";newPhotos.forEach(p=>URL.revokeObjectURL(p.url));newPhotos=[];
+  $("#carForm").reset();$("#photos").value="";$("#carfax").value="";
+  $("#formTitle").textContent="Add a car";$("#saveBtn").textContent="Add car";$("#cancelBtn").classList.add("hide");
+  renderThumbs();
+}
+
+function startEdit(i){
+  const c=cars[i];resetForm();editing=c.id||null;editing=i;
+  const f=$("#carForm");
+  for(const k of ["year","make","model","trim","body","price","km","color","interior","transmission","fuel","drivetrain","vin","desc"]){f.elements[k].value=c[k]??""}
+  f.elements.features.value=Array.isArray(c.features)?c.features.join("\n"):"";
+  $("#sold").checked=!!c.sold;
+  keepPhotos=(Array.isArray(c.photos)&&c.photos.length?c.photos:(c.img?[c.img]:[])).filter(safePath);
+  keepCarfax=safePath(c.carfax)?c.carfax:"";
+  $("#formTitle").textContent="Edit: "+carTitle(c);$("#saveBtn").textContent="Save changes";$("#cancelBtn").classList.remove("hide");
+  renderThumbs();window.scrollTo({top:0,behavior:"smooth"});
+}
+
+function readForm(){
+  const f=$("#carForm").elements,o={};
+  const num=k=>{const v=String(f[k].value).trim();return v===""?null:Number(v)};
+  const txt=k=>String(f[k].value).trim();
+  o.year=num("year");o.make=txt("make");o.model=txt("model");
+  for(const k of ["trim","body","color","interior","transmission","fuel","drivetrain","vin","desc"]){if(txt(k))o[k]=txt(k)}
+  if(num("price")!==null)o.price=num("price");
+  if(num("km")!==null)o.km=num("km");
+  const feats=txt("features").split("\n").map(s=>s.trim()).filter(Boolean);if(feats.length)o.features=feats;
+  if($("#sold").checked)o.sold=true;
+  return o;
+}
+
+async function load(){
+  try{cars=await fetchCars();renderList();$("#list").querySelectorAll("button").forEach(b=>b.disabled=busy)}
+  catch(e){msg(friendly(e),"err")}
+}
+
+async function save(ev){
+  ev.preventDefault();if(busy)return;
+  const data=readForm();
+  if(!data.year||!data.make||!data.model){msg("Please fill in the year, make and model.","err");return}
+  setBusy(true);msg("Saving… please keep this page open.","work");
+  try{
+    const photoFiles=[];let n=0;
+    const fresh=await fetchCars();           // always start from the latest list on the website
+    let car,idx=-1;
+    if(editing!==null){
+      const orig=cars[editing];
+      idx=fresh.findIndex(c=>(orig.id&&c.id===orig.id)||(!orig.id&&carTitle(c)===carTitle(orig)&&c.vin===orig.vin));
+      if(idx<0)throw new Error("That car was changed elsewhere. Reload the page and try again.");
+      car={...fresh[idx]};
+    }else car={id:"car-"+Date.now()};
+    if(!car.id)car.id="car-"+Date.now();
+    // clear editable fields then re-apply
+    for(const k of ["year","make","model","trim","body","price","km","color","interior","transmission","fuel","drivetrain","vin","desc","features","sold"])delete car[k];
+    Object.assign(car,data);
+    const dir=`cars/${car.id}`;
+    const photos=[...keepPhotos];
+    for(const p of newPhotos){n++;msg(`Preparing photo ${n} of ${newPhotos.length}…`,"work");const path=`${dir}/photo-${Date.now()}-${n}.jpg`;photoFiles.push({path,b64:await blobToB64(p.blob)});photos.push(path)}
+    const oldRefs=new Set([...(fresh[idx]?.photos||[]),fresh[idx]?.img,fresh[idx]?.carfax].filter(safePath));
+    let carfax=keepCarfax;
+    const cf=$("#carfax").files[0];
+    const files=[...photoFiles];
+    if(cf){msg("Preparing CARFAX…","work");const path=`${dir}/carfax-${Date.now()}.pdf`;files.push({path,b64:await blobToB64(cf)});carfax=path}
+    if(photos.length){car.photos=photos;car.img=photos[0]}else{delete car.photos;delete car.img}
+    if(carfax)car.carfax=carfax;else delete car.carfax;
+    const stillUsed=new Set([...photos,carfax].filter(Boolean));
+    const deletes=[...oldRefs].filter(p=>!stillUsed.has(p));
+    const list=[...fresh];if(idx>=0)list[idx]=car;else list.unshift(car);
+    files.push({path:"cars.json",b64:textToB64(JSON.stringify(list,null,2)+"\n")});
+    msg("Saving to your website…","work");
+    await commit(files,deletes,`${editing!==null?"Update":"Add"} ${carTitle(car)}`);
+    resetForm();cars=list;renderList();
+    msg("Saved! Your website will show the change in about 1 to 2 minutes.","ok");window.scrollTo({top:0,behavior:"smooth"});
+  }catch(e){msg(e.status?friendly(e):(e.message||"Something went wrong."),"err")}
+  finally{setBusy(false)}
+}
+
+async function quick(i,act){
+  if(busy)return;const c=cars[i];
+  if(act==="del"){const b=document.querySelector(`[data-act="del"][data-i="${i}"]`);if(b.dataset.arm!=="1"){b.dataset.arm="1";b.textContent="Tap again to remove";setTimeout(()=>{b.dataset.arm="";b.textContent="Remove"},4000);return}}
+  setBusy(true);msg(act==="del"?"Removing…":"Saving…","work");
+  try{
+    const fresh=await fetchCars();
+    const idx=fresh.findIndex(x=>(c.id&&x.id===c.id)||(!c.id&&carTitle(x)===carTitle(c)&&x.vin===c.vin));
+    if(idx<0)throw new Error("That car was changed elsewhere. Reload the page.");
+    const list=[...fresh],deletes=[];
+    if(act==="sold"){const n={...list[idx]};if(n.sold)delete n.sold;else n.sold=true;list[idx]=n}
+    else{const gone=list.splice(idx,1)[0];[...(gone.photos||[]),gone.img,gone.carfax].filter(safePath).forEach(p=>deletes.push(p))}
+    await commit([{path:"cars.json",b64:textToB64(JSON.stringify(list,null,2)+"\n")}],deletes,`${act==="del"?"Remove":"Update"} ${carTitle(c)}`);
+    cars=list;renderList();resetForm();
+    msg("Saved! Your website will show the change in about 1 to 2 minutes.","ok");
+  }catch(e){msg(e.status?friendly(e):(e.message||"Something went wrong."),"err")}
+  finally{setBusy(false)}
+}
+
+function show(){
+  const has=!!token;
+  $("#setup").classList.toggle("hide",has);$("#app").classList.toggle("hide",!has);$("#signout").classList.toggle("hide",!has);
+  if(has)load();
+}
+
+$("#saveTok").addEventListener("click",async()=>{
+  const v=$("#tok").value.trim();if(!v){msg("Paste your key first.","err");return}
+  token=v;msg("Checking your key…","work");
+  try{const r=await gh("");if(r.permissions&&!r.permissions.push)throw Object.assign(new Error("no push"),{status:403});
+    try{localStorage.setItem("cargo_admin_key",v)}catch(e){}
+    $("#tok").value="";msg("Key saved on this device.","ok");show()}
+  catch(e){token="";msg(friendly(e),"err")}
+});
+$("#signout").addEventListener("click",ev=>{ev.preventDefault();try{localStorage.removeItem("cargo_admin_key")}catch(e){}token="";cars=[];resetForm();msg("Key removed from this device.","ok");show()});
+$("#carForm").addEventListener("submit",save);
+$("#cancelBtn").addEventListener("click",resetForm);
+$("#list").addEventListener("click",ev=>{const b=ev.target.closest("button[data-act]");if(!b)return;const i=+b.dataset.i;b.dataset.act==="edit"?startEdit(i):quick(i,b.dataset.act)});
+$("#photos").addEventListener("change",async ev=>{
+  const files=[...ev.target.files];ev.target.value="";
+  for(const f of files){
+    try{const blob=await toJpeg(f);newPhotos.push({blob,url:URL.createObjectURL(blob)})}
+    catch(e){msg(`"${f.name}" couldn't be read by this browser. Try choosing it again from your photo library, or use a JPG.`,"err")}
+  }
+  renderThumbs();
+});
+$("#oldPhotos").addEventListener("click",ev=>{
+  const k=ev.target.closest("[data-k]"),m=ev.target.closest("[data-mk]");
+  if(k){keepPhotos.splice(+k.dataset.k,1)}else if(m){const i=+m.dataset.mk;keepPhotos.unshift(keepPhotos.splice(i,1)[0])}else return;
+  renderThumbs();
+});
+$("#newPhotos").addEventListener("click",ev=>{const n=ev.target.closest("[data-n]");if(!n)return;const [p]=newPhotos.splice(+n.dataset.n,1);URL.revokeObjectURL(p.url);renderThumbs()});
+$("#oldCarfax").addEventListener("click",ev=>{if(ev.target.id==="rmCarfax"){keepCarfax="";renderThumbs()}});
+show();
+</script>
+</body>
+</html>
