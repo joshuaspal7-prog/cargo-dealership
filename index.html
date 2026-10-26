@@ -51,6 +51,21 @@ footer h4{color:#fff;margin:0 0 10px}footer a{text-decoration:none}footer a:hove
 .flogo{width:90px;border-radius:12px;margin-bottom:12px}
 @media(max-width:760px){.about{grid-template-columns:1fr}}
 .hide{display:none}
+
+.car{cursor:pointer;transition:transform .15s,box-shadow .15s}.car:hover,.car:focus-visible{transform:translateY(-3px);box-shadow:0 10px 26px rgba(0,0,0,.14);outline:none}
+.more{color:var(--brand);font-weight:700;font-size:.88rem}
+.dlg{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.62);display:none;align-items:flex-start;justify-content:center;overflow-y:auto;padding:24px 14px}
+.dlg.open{display:flex}
+.dp{position:relative;background:var(--card);color:var(--ink);border-radius:16px;max-width:760px;width:100%;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+.dx{position:absolute;top:10px;right:10px;z-index:2;width:38px;height:38px;border-radius:50%;border:0;background:rgba(0,0,0,.6);color:#fff;font-size:1.3rem;cursor:pointer;line-height:1}
+.dmain{height:min(52vw,380px);background:linear-gradient(135deg,#ececf0,#d5d5dc);display:flex;align-items:center;justify-content:center;font-size:5rem;overflow:hidden}
+.dmain img{width:100%;height:100%;object-fit:cover}
+.thumbs{display:flex;gap:8px;padding:10px 20px 0;overflow-x:auto}.thumbs img{width:72px;height:54px;object-fit:cover;border-radius:8px;border:2px solid transparent;cursor:pointer}.thumbs img.on{border-color:var(--brand)}
+.db{padding:20px}.db h3{margin:0 0 4px;font-size:1.5rem}.db .price{font-size:1.7rem;margin-bottom:10px}
+.specs{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin:14px 0}
+.spec{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px}.spec small{display:block;color:var(--mute);font-size:.75rem;text-transform:uppercase;letter-spacing:.5px}.spec b{font-size:.98rem;word-break:break-word}
+.feat{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 14px}.feat span{background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:5px 12px;font-size:.85rem}
+.dact{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
 </style>
 </head>
 <body>
@@ -96,7 +111,7 @@ footer h4{color:#fff;margin:0 0 10px}footer a{text-decoration:none}footer a:hove
 <section id="reviews">
 <h2>What our customers say</h2>
 <p class="sub">Bought from us? We’d love to hear about your experience.</p>
-<div class="panel" id="revPanel"><b>Bought a car from us?</b> We’d love to hear how it went. <div style="margin-top:12px"><a class="btn alt" href="mailto:CarGodealership@gmail.com?subject=My%20Car-Go%20review">Send us your review</a></div></div>
+<div class="panel" id="revPanel"><b>Bought a car from us?</b> We’d love to hear how it went. <div style="margin-top:12px"><a class="btn alt" href="https://g.page/r/CTpRDT_oD_whEBM/review" target="_blank" rel="noopener">Review us on Google</a></div></div>
 <div id="revs" class="grid"><div class="empty">Loading reviews…</div></div>
 </section>
 
@@ -106,9 +121,11 @@ footer h4{color:#fff;margin:0 0 10px}footer a{text-decoration:none}footer a:hove
 <div><h4>Get in touch</h4><p>Phone: <a href="tel:4168438036">416-843-8036</a><br>Email: <a href="mailto:CarGodealership@gmail.com">CarGodealership@gmail.com</a></p></div>
 </div><div class="copy">© 2026 Car-Go Dealership Inc. All rights reserved.</div></footer>
 
+<div class="dlg" id="dlg" role="dialog" aria-modal="true" aria-label="Vehicle details"><div class="dp"><button class="dx" id="dx" aria-label="Close">&times;</button><div id="dbody"></div></div></div>
 <script>
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const money=v=>Number(v)>0?"$"+Number(v).toLocaleString("en-CA"):"Call for price";
 const safe=u=>/^(https?:\/\/|[\w\-./]+$)/i.test(u||"")?esc(u):"";
 async function load(f){try{const r=await fetch(f,{cache:"no-store"});return r.ok?await r.json():[]}catch(e){return null}}
 (async()=>{
@@ -116,16 +133,44 @@ async function load(f){try{const r=await fetch(f,{cache:"no-store"});return r.ok
   const ce=$("#cars");
   if(cars===null)ce.innerHTML='<div class="empty">Call 416-843-8036 to hear what’s on the lot.</div>';
   else if(!cars.length)ce.innerHTML='<div class="empty">New vehicles are coming soon. Call us at 416-843-8036 to ask what’s arriving.</div>';
-  else ce.innerHTML=cars.map(d=>`<div class="car"><div class="pic">${d.img?`<img src="${safe(d.img)}" alt="">`:"🚗"}</div><div class="cb">
+  else ce.innerHTML=cars.map((d,i)=>`<div class="car" data-i="${i}" tabindex="0" role="button" aria-label="View details for ${esc(d.year)} ${esc(d.make)} ${esc(d.model)}"><div class="pic">${d.img?`<img src="${safe(d.img)}" alt="">`:"🚗"}</div><div class="cb">
   ${d.sold?'<span class="tag">SOLD</span>':''}<h3>${esc(d.year)} ${esc(d.make)} ${esc(d.model)}</h3>
-  <div class="price">$${Number(d.price||0).toLocaleString("en-CA")}</div>
+  <div class="price">${money(d.price)}</div>
   ${d.km?`<div class="meta">${Number(d.km).toLocaleString("en-CA")} km</div>`:""}
   <p>${esc(d.desc)}</p>
+  <span class="more">View details →</span>
   ${d.carfax?`<a class="cfx" href="${safe(d.carfax)}" target="_blank" rel="noopener">✔ View CARFAX® report</a>`:""}
   <a class="btn alt sm" href="mailto:CarGodealership@gmail.com?subject=${encodeURIComponent("Inquiry: "+d.year+" "+d.make+" "+d.model)}">Ask about this car</a>
   </div></div>`).join("");
+  if(cars&&cars.length){
+    const SP=[["Year","year"],["Make","make"],["Model","model"],["Trim","trim"],["Body style","body"],["Kilometres","km"],["Colour","color"],["Interior","interior"],["Transmission","transmission"],["Fuel","fuel"],["Drivetrain","drivetrain"],["VIN","vin"]];
+    const dlg=$("#dlg"),body=$("#dbody");let last=null;
+    const close=()=>{dlg.classList.remove("open");document.body.style.overflow="";if(last)last.focus()};
+    const open=i=>{
+      const d=cars[i];const photos=(Array.isArray(d.photos)&&d.photos.length?d.photos:(d.img?[d.img]:[])).filter(safe);
+      const title=`${esc(d.year)} ${esc(d.make)} ${esc(d.model)}${d.trim?" "+esc(d.trim):""}`;
+      const specs=SP.filter(([,k])=>d[k]!==undefined&&d[k]!==""&&d[k]!==null).map(([l,k])=>`<div class="spec"><small>${l}</small><b>${k==="km"?Number(d[k]).toLocaleString("en-CA")+" km":esc(d[k])}</b></div>`).join("");
+      const feats=Array.isArray(d.features)&&d.features.length?`<h4 style="margin:16px 0 4px">Features</h4><div class="feat">${d.features.map(f=>`<span>${esc(f)}</span>`).join("")}</div>`:"";
+      body.innerHTML=`<div class="dmain" id="dmain">${photos.length?`<img src="${safe(photos[0])}" alt="${title}">`:"🚗"}</div>
+      ${photos.length>1?`<div class="thumbs">${photos.map((u,j)=>`<img src="${safe(u)}" alt="Photo ${j+1}" data-p="${j}" class="${j?"":"on"}">`).join("")}</div>`:""}
+      <div class="db">${d.sold?'<span class="tag">SOLD</span> ':''}<h3>${title}</h3>
+      <div class="price">${money(d.price)}</div>
+      ${d.desc?`<p style="margin:0 0 6px">${esc(d.desc)}</p>`:""}
+      <div class="specs">${specs}</div>${feats}
+      <div class="dact">${d.carfax?`<a class="btn alt" href="${safe(d.carfax)}" target="_blank" rel="noopener">✔ View CARFAX® report</a>`:""}
+      <a class="btn" href="mailto:CarGodealership@gmail.com?subject=${encodeURIComponent("Inquiry: "+d.year+" "+d.make+" "+d.model)}">Email about this car</a>
+      <a class="btn ghost" href="tel:4168438036">Call 416-843-8036</a></div></div>`;
+      body.querySelectorAll(".thumbs img").forEach(t=>t.addEventListener("click",()=>{$("#dmain").innerHTML=`<img src="${t.src}" alt="">`;body.querySelectorAll(".thumbs img").forEach(x=>x.classList.toggle("on",x===t))}));
+      dlg.classList.add("open");dlg.scrollTop=0;document.body.style.overflow="hidden";$("#dx").focus();
+    };
+    ce.addEventListener("click",e=>{if(e.target.closest("a"))return;const c=e.target.closest(".car");if(c){last=c;open(+c.dataset.i)}});
+    ce.addEventListener("keydown",e=>{if((e.key==="Enter"||e.key===" ")&&e.target.classList.contains("car")){e.preventDefault();last=e.target;open(+e.target.dataset.i)}});
+    $("#dx").addEventListener("click",close);
+    dlg.addEventListener("click",e=>{if(e.target===dlg)close()});
+    document.addEventListener("keydown",e=>{if(e.key==="Escape"&&dlg.classList.contains("open"))close()});
+  }
   const re=$("#revs");
-  if(!revs||!revs.length)re.innerHTML='<div class="empty">Reviews are coming soon.</div>';
+  if(!revs||!revs.length)re.remove();
   else re.innerHTML=revs.map(r=>`<div class="rev"><div class="stars">${"★".repeat(r.rating)}${"☆".repeat(5-r.rating)}</div><p>${esc(r.text)}</p><b>${esc(r.name)}</b><small>${esc(r.date)}</small></div>`).join("");
 })();
 </script>

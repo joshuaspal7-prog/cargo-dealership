@@ -15,6 +15,8 @@ Website for Car-Go Dealership Inc., 257 Centennial Pkwy N, Hamilton ON.
 2. Open `cars.json`, click the pencil icon, and add an entry like the one in `cars.example.json`. Separate cars with commas.
 3. Click Commit changes. The site updates in about a minute.
 
+Customers can click a car to see all its details. Every line except year, make, model and price is optional: trim, body, km, color, transmission, fuel, drivetrain, vin, desc, features, photos (several photos), carfax.
+
 Remove a car by deleting its entry. Mark it sold with `"sold": true`.
 
 ## Add a review
