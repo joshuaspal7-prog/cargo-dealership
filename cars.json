@@ -1,17 +1,16 @@
 [
   {
-    "id": "car-1793392899526",
     "year": 2010,
     "make": "Honda",
     "model": "Pilot",
     "trim": "EX-L",
     "body": "SUV",
+    "km": 328800,
     "color": "Silver",
     "interior": "Leather",
     "drivetrain": "AWD",
     "vin": "5FNYF4H56AB504533",
     "desc": "2010 Honda Pilot EX-L | Leather | Sunroof | 3rd Row | V6\nLooking for a spacious, reliable SUV for the whole family? Check out this Honda Pilot EX-L!",
-    "km": 328800,
     "features": [
       "Powerful V6 engine",
       "Leather interior",
@@ -23,48 +22,37 @@
       "Mileage: 328,XXX KM"
     ],
     "photos": [
-      "cars/car-1793392899526/photo-1793392899526-1.jpg",
-      "cars/car-1793392899526/photo-1793392899528-2.jpg",
-      "cars/car-1793392899526/photo-1793392899528-3.jpg",
-      "cars/car-1793392899526/photo-1793392899529-4.jpg",
-      "cars/car-1793392899526/photo-1793392899530-5.jpg",
-      "cars/car-1793392899526/photo-1793392899530-6.jpg",
-      "cars/car-1793392899526/photo-1793392899531-7.jpg",
-      "cars/car-1793392899526/photo-1793392899531-8.jpg",
-      "cars/car-1793392899526/photo-1793392899532-9.jpg",
-      "cars/car-1793392899526/photo-1793392899532-10.jpg"
+      "https://cargo-dealership.com/cars/car-1793392899526/photo-1793392899526-1.jpg",
+      "https://cargo-dealership.com/cars/car-1793392899526/photo-1793392899528-2.jpg",
+      "https://cargo-dealership.com/cars/car-1793392899526/photo-1793392899528-3.jpg",
+      "https://cargo-dealership.com/cars/car-1793392899526/photo-1793392899529-4.jpg",
+      "https://cargo-dealership.com/cars/car-1793392899526/photo-1793392899530-5.jpg",
+      "https://cargo-dealership.com/cars/car-1793392899526/photo-1793392899530-6.jpg",
+      "https://cargo-dealership.com/cars/car-1793392899526/photo-1793392899531-7.jpg",
+      "https://cargo-dealership.com/cars/car-1793392899526/photo-1793392899531-8.jpg",
+      "https://cargo-dealership.com/cars/car-1793392899526/photo-1793392899532-9.jpg",
+      "https://cargo-dealership.com/cars/car-1793392899526/photo-1793392899532-10.jpg"
     ],
-    "img": "cars/car-1793392899526/photo-1793392899526-1.jpg",
-    "carfax": "cars/car-1793392899526/carfax-1793392899532.pdf"
+    "img": "https://cargo-dealership.com/cars/car-1793392899526/photo-1793392899526-1.jpg",
+    "carfax": "https://cargo-dealership.com/cars/car-1793392899526/carfax-1793392899532.pdf",
+    "price": 3949.0,
+    "sold": false,
+    "pending": false
   },
   {
-    "img": "crv-1.jpg",
-    "photos": [
-      "crv-1.jpg",
-      "crv-2.jpg",
-      "crv-3.jpg",
-      "crv-4.jpg",
-      "crv-5.jpg",
-      "crv-6.jpg",
-      "crv-7.jpg",
-      "crv-8.jpg",
-      "crv-9.jpg"
-    ],
-    "carfax": "crv-carfax.pdf",
-    "id": "car-1793030795264",
     "year": 2019,
     "make": "Honda",
     "model": "CR-V",
     "trim": "LX AWD",
     "body": "SUV",
+    "km": 137700,
     "color": "White",
     "interior": "Black cloth",
     "transmission": "Automatic",
     "fuel": "Gasoline",
     "drivetrain": "AWD",
     "vin": "2HKRW2H25KH109325",
-    "desc": "White 2019 Honda CR-V LX AWD with a black cloth interior. A comfortable, practical SUV that's easy to live with every day, with all-wheel drive for confidence in any season, a spacious cargo area and roomy rear seats. Comes with Honda Sensing safety features, adaptive cruise control, lane keeping assist, a backup camera and a touchscreen with Bluetooth. All-weather floor mats included. Review the CARFAX report below, then message us to arrange a viewing and test drive.",
-    "km": 137700,
+    "desc": "White 2019 Honda CR-V LX AWD with a black cloth interior. A comfortable, practical SUV that's easy to live with every day, with all-wheel drive for confidence in any season, a spacious cargo area and roomy rear seats. Comes with Honda Sensing safety features, adaptive cruise control, lane keeping assist, a backup camera and a touchscreen with Bluetooth. All-weather floor mats included.",
     "features": [
       "All-wheel drive (AWD)",
       "Automatic transmission",
@@ -78,6 +66,21 @@
       "Spacious trunk and rear seating",
       "All-weather floor mats"
     ],
-    "price": 17900
+    "photos": [
+      "https://cargo-dealership.com/crv-1.jpg",
+      "https://cargo-dealership.com/crv-2.jpg",
+      "https://cargo-dealership.com/crv-3.jpg",
+      "https://cargo-dealership.com/crv-4.jpg",
+      "https://cargo-dealership.com/crv-5.jpg",
+      "https://cargo-dealership.com/crv-6.jpg",
+      "https://cargo-dealership.com/crv-7.jpg",
+      "https://cargo-dealership.com/crv-8.jpg",
+      "https://cargo-dealership.com/crv-9.jpg"
+    ],
+    "img": "https://cargo-dealership.com/crv-1.jpg",
+    "carfax": "https://cargo-dealership.com/crv-carfax.pdf",
+    "price": 17630.0,
+    "sold": false,
+    "pending": false
   }
 ]
