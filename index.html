@@ -67,11 +67,16 @@ footer h4{color:#fff;margin:0 0 10px}footer a{text-decoration:none}footer a:hove
 .spec{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px}.spec small{display:block;color:var(--mute);font-size:.75rem;text-transform:uppercase;letter-spacing:.5px}.spec b{font-size:.98rem;word-break:break-word}
 .feat{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 14px}.feat span{background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:5px 12px;font-size:.85rem}
 .dact{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+.enq{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.enq .chk{flex-direction:row;align-items:flex-start;gap:8px;font-weight:500;color:var(--ink);font-size:.9rem}.enq .chk input{width:auto;margin-top:3px}
+.hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+.fmsg{grid-column:1/-1;font-weight:600;min-height:1.2em}.fmsg.ok{color:#0a7d3b}.fmsg.err{color:var(--brand)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .fmsg.ok{color:#4cd98a}}
 </style>
 </head>
 <body>
 <header><div class="bar"><a class="logo" href="#top">Car-<span>Go</span> Dealership</a>
-<nav><a href="#about">About</a><a href="#inventory">Inventory</a><a href="#reviews">Reviews</a><a href="#contact">Contact</a></nav></div></header>
+<nav><a href="#about">About</a><a href="#inventory">Inventory</a><a href="#reviews">Reviews</a><a href="#enquire">Enquire</a><a href="#contact">Contact</a></nav></div></header>
 
 <div id="top" class="hero">
 <img class="heroLogo" src="logo.jpg" alt="Car-Go Dealership Inc. logo">
@@ -120,6 +125,23 @@ footer h4{color:#fff;margin:0 0 10px}footer a{text-decoration:none}footer a:hove
 <div id="revs" class="grid"><div class="empty">Loading reviews…</div></div>
 </section>
 
+<section id="enquire">
+<h2>Ask us about a car</h2>
+<p class="sub">Send us a message and we’ll get back to you, usually the same day.</p>
+<div class="panel"><form id="enqForm" class="enq" novalidate>
+<label>Your name *<input name="name" autocomplete="name" required maxlength="120"></label>
+<label>Email<input name="email" type="email" autocomplete="email" maxlength="200"></label>
+<label>Phone<input name="phone" type="tel" autocomplete="tel" maxlength="40"></label>
+<label>Which car?<select name="car" id="enqCar"><option value="">General question</option></select></label>
+<label class="wide">Message<textarea name="message" maxlength="3000" placeholder="e.g. Is it still available? Can I book a test drive Saturday?"></textarea></label>
+<label class="hp" aria-hidden="true">Leave this empty<input name="website" tabindex="-1" autocomplete="off"></label>
+<label class="wide chk"><input type="checkbox" name="optin"> Yes, Car-Go Dealership Inc. may send me occasional emails or texts about vehicles and offers. I can unsubscribe at any time. (Optional)</label>
+<div class="wide" style="font-size:.82rem;color:var(--mute)">We’ll use your details to reply to this enquiry. Car-Go Dealership Inc., 257 Centennial Pkwy N, Hamilton ON L8E 2X3 · 416-843-8036.</div>
+<div class="wide"><button class="btn" id="enqBtn">Send message</button></div>
+<div class="fmsg" id="enqMsg" role="status"></div>
+</form></div>
+</section>
+
 <footer id="contact"><div class="fg">
 <div><h4><img class="flogo" src="logo.jpg" alt="Car-Go logo">Car-Go Dealership Inc.</h4><p>Your trusted Hamilton dealership for quality pre-owned vehicles.</p></div>
 <div><h4>Visit us</h4><p>257 Centennial Pkwy N<br>Hamilton, ON L8E 2X3</p></div>
@@ -136,6 +158,7 @@ const safe=u=>/^(https?:\/\/|[\w\-./]+$)/i.test(u||"")?esc(u):"";
 async function load(f){try{const r=await fetch(f,{cache:"no-store"});return r.ok?await r.json():[]}catch(e){return null}}
 (async()=>{
   const cars=await load("cars.json"),revs=await load("reviews.json");
+  window.__cars=cars;setEnqCars(cars);
   const ce=$("#cars");
   if(cars===null)ce.innerHTML='<div class="empty">Call 416-843-8036 to hear what’s on the lot.</div>';
   else if(!cars.length)ce.innerHTML='<div class="empty">New vehicles are coming soon. Call us at 416-843-8036 to ask what’s arriving.</div>';
@@ -146,7 +169,7 @@ async function load(f){try{const r=await fetch(f,{cache:"no-store"});return r.ok
   <p>${esc(d.desc)}</p>
   <span class="more">View details →</span>
   ${d.carfax?`<a class="cfx" href="${safe(d.carfax)}" target="_blank" rel="noopener">✔ View CARFAX® report</a>`:""}
-  <a class="btn alt sm" href="${mail(d)}" target="_blank" rel="noopener">Ask about this car</a>
+  <a class="btn alt sm" href="#enquire" data-ask="${i}">Ask about this car</a>
   </div></div>`).join("");
   if(cars&&cars.length){
     const SP=[["Year","year"],["Make","make"],["Model","model"],["Trim","trim"],["Body style","body"],["Kilometres","km"],["Colour","color"],["Interior","interior"],["Transmission","transmission"],["Fuel","fuel"],["Drivetrain","drivetrain"],["VIN","vin"]];
@@ -164,7 +187,8 @@ async function load(f){try{const r=await fetch(f,{cache:"no-store"});return r.ok
       ${d.desc?`<p style="margin:0 0 6px">${esc(d.desc)}</p>`:""}
       <div class="specs">${specs}</div>${feats}
       <div class="dact">${d.carfax?`<a class="btn alt" href="${safe(d.carfax)}" target="_blank" rel="noopener">✔ View CARFAX® report</a>`:""}
-      <a class="btn" href="${mail(d)}" target="_blank" rel="noopener">Email about this car</a>
+      <a class="btn" href="#enquire" data-ask="${i}">Ask about this car</a>
+      <a class="btn ghost" href="${mail(d)}" target="_blank" rel="noopener">Email us</a>
       <a class="btn ghost" href="tel:4168438036">Call 416-843-8036</a></div></div>`;
       body.querySelectorAll(".thumbs img").forEach(t=>t.addEventListener("click",()=>{$("#dmain").innerHTML=`<img src="${t.src}" alt="">`;body.querySelectorAll(".thumbs img").forEach(x=>x.classList.toggle("on",x===t))}));
       dlg.classList.add("open");dlg.scrollTop=0;document.body.style.overflow="hidden";$("#dx").focus();
@@ -179,6 +203,31 @@ async function load(f){try{const r=await fetch(f,{cache:"no-store"});return r.ok
   if(!revs||!revs.length)re.remove();
   else re.innerHTML=revs.map(r=>`<div class="rev"><div class="stars">${"★".repeat(r.rating)}${"☆".repeat(5-r.rating)}</div><p>${esc(r.text)}</p><b>${esc(r.name)}</b><small>${esc(r.date)}</small></div>`).join("");
 })();
+
+/* Website enquiries go straight into the Car-Go CRM (public, insert-only; the database decides what's allowed) */
+const SB="https://mjbjrqrmfpjmnaijbtso.supabase.co",SBK="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1qYmpycXJtZnBqbW5haWpidHNvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM0OTc1OTIsImV4cCI6MjEwOTA3MzU5Mn0.5szlgPPGnvBzaduK54RhIW4-EfGAPrgPJpy1NpnLpXE";
+let ENQ_CARS=[];
+function setEnqCars(cars){ENQ_CARS=(cars||[]).filter(d=>!d.sold);$("#enqCar").innerHTML='<option value="">General question</option>'+ENQ_CARS.map((d,i)=>`<option value="${i}">${esc(d.year)} ${esc(d.make)} ${esc(d.model)}${d.trim?" "+esc(d.trim):""}</option>`).join("")}
+document.addEventListener("click",e=>{const a=e.target.closest("[data-ask]");if(!a)return;const car=window.__cars&&window.__cars[+a.dataset.ask];const k=ENQ_CARS.indexOf(car);if(k>=0)$("#enqCar").value=String(k);const dlg=$("#dlg");if(dlg.classList.contains("open")){dlg.classList.remove("open");document.body.style.overflow=""}setTimeout(()=>$("#enqForm [name=name]").focus(),400)});
+$("#enqForm").addEventListener("submit",async e=>{
+  e.preventDefault();const f=e.target,m=$("#enqMsg"),b=$("#enqBtn");m.className="fmsg";m.textContent="";
+  if(f.website.value)return; /* bot trap */
+  const name=f.name.value.trim(),email=f.email.value.trim(),phone=f.phone.value.trim();
+  if(!name){m.className="fmsg err";m.textContent="Please enter your name.";return}
+  if(!email&&!phone){m.className="fmsg err";m.textContent="Please add an email or phone number so we can reply.";return}
+  if(email&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){m.className="fmsg err";m.textContent="Please check your email address.";return}
+  const car=f.car.value!==""?ENQ_CARS[+f.car.value]:null;const H={apikey:SBK,Authorization:"Bearer "+SBK,"Content-Type":"application/json"};
+  b.disabled=true;b.textContent="Sending…";
+  try{
+    let vid=null;
+    if(car&&car.vin){try{const r=await fetch(SB+"/rest/v1/vehicles?select=id&vin=eq."+encodeURIComponent(car.vin),{headers:H});const j=await r.json();vid=j&&j[0]?j[0].id:null}catch(_){}}
+    const msg=(car&&!vid?`[About: ${car.year} ${car.make} ${car.model}] `:"")+f.message.value.trim();
+    const r=await fetch(SB+"/rest/v1/rpc/submit_enquiry",{method:"POST",headers:H,body:JSON.stringify({p_name:name,p_email:email||null,p_phone:phone||null,p_message:msg,p_vehicle_id:vid,p_marketing_consent:f.optin.checked})});
+    if(!r.ok){let t="";try{t=(await r.json()).message}catch(_){}throw new Error(t||"Something went wrong")}
+    f.reset();m.className="fmsg ok";m.textContent="Thanks, "+name.split(" ")[0]+"! We got your message and will get back to you soon.";
+  }catch(err){m.className="fmsg err";m.textContent=(err.message&&err.message.length<160?err.message:"Sorry, that didn’t send.")+" You can also call us at 416-843-8036."}
+  b.disabled=false;b.textContent="Send message";
+});
 </script>
 </body>
 </html>

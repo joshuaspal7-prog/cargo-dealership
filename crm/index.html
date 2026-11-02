@@ -398,7 +398,11 @@ function activityText(a){
     message_logged: `Message logged for ${d.name||"a lead"}`, message_approved: `Outreach approved for ${d.name||"a lead"}`, message_sent: `Outreach marked sent to ${d.name||"a lead"}`,
     consent_recorded: `Consent recorded for ${d.name||"a lead"} (${CONSENT_LABEL[d.type]||d.type})`,
     vehicle_created: `Added vehicle: ${d.title||""}`, vehicle_updated: `Updated vehicle: ${d.title||""}`, vehicle_deleted: `Removed vehicle: ${d.title||""}`,
-    staff_invited: `Invited ${d.email||"staff"}`, leads_exported: `Exported ${d.count} leads to CSV`
+    staff_invited: `Invited ${d.email||"staff"}`, leads_exported: `Exported ${d.count} leads to CSV`,
+    ai_qualified: `AI scored ${d.name||"a lead"}: ${d.score}/100${d.matches?`, ${d.matches} car match${d.matches>1?"es":""}`:""}`,
+    ai_matched: `AI matched ${d.name||"a lead"} to inventory (${d.matches} match${d.matches===1?"":"es"})`,
+    ai_researched_post: `AI researched a ${SOURCE_LABEL[d.platform]||""} post`,
+    ai_lead_search: `AI web search: ${d.searches} search${d.searches===1?"":"es"}, ${d.found} new lead${d.found===1?"":"s"}`
   };
   return map[a.action] || a.action.replace(/_/g," ");
 }
@@ -495,7 +499,8 @@ function leadDetails(d, l, markDirty){
   const x = l || {source_platform:"walk_in", status:"new", contact_permission:"none"};
   const b = x.score_breakdown || {};
   d.body.innerHTML = `
-  ${l?`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">${tierBadge(l)} ${stageBadge(l.status)} <span class="badge s-badge">${esc(PERM_LABEL[l.contact_permission])}</span></div>`:""}
+  ${l?`<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px">${tierBadge(l)} ${stageBadge(l.status)} <span class="badge s-badge">${esc(PERM_LABEL[l.contact_permission])}</span>${l.source_url?`<a class="small" href="${esc(l.source_url)}" target="_blank" rel="noopener noreferrer">Open original ↗</a>`:""}<span style="flex:1"></span><button class="btn sm ghost" id="aiScore">✨ AI score &amp; match</button></div>
+  <div id="matchBox"></div>`:""}
   <form id="lf" class="form">
     <div class="sec full">Source (required — every lead must be traceable)</div>
     <div><label>Source platform</label><select name="source_platform">${opts(SOURCES,x.source_platform)}</select></div>
@@ -550,6 +555,12 @@ function leadDetails(d, l, markDirty){
   };
   f.oninput = sync; sync();
   if (l){
+    drawMatches(l);
+    $("#aiScore").onclick = async () => {
+      const b=$("#aiScore"); b.disabled=true; b.textContent="Scoring…";
+      try { await ai("qualify",{lead_ids:[l.id]}); const fresh = await q(sb.from("leads").select("*").eq("id",l.id).single()); Object.assign(l,fresh); markDirty(); toast(`AI score: ${l.score}/100`); leadDetails(d,l,markDirty); }
+      catch(e){ toast(e.message,true); b.disabled=false; b.textContent="✨ AI score & match"; }
+    };
     $("#markSold").onclick = () => { f.status.value="sold"; sync(); f.sold_vehicle_id.focus(); };
     $("#markLost").onclick = () => { f.status.value="lost"; sync(); f.lost_reason.focus(); };
     $("#delLead").onclick = async () => {
@@ -594,6 +605,14 @@ function leadDetails(d, l, markDirty){
     } catch(e){ msg.className="msg err"; msg.textContent=friendlyErr(e); }
     btn.disabled=false;
   };
+}
+async function drawMatches(l){
+  const box=$("#matchBox"); if(!box) return;
+  try {
+    const ms = await q(sb.from("lead_matches").select("*").eq("lead_id",l.id).order("fit",{ascending:false}));
+    if (!ms.length){ box.innerHTML = l.ai_scored_at ? `<div class="notice" style="margin-bottom:12px">No current inventory matches for this lead.</div>` : ""; return; }
+    box.innerHTML = `<div class="sec" style="margin-top:0">Matching cars</div>` + ms.map(m=>{ const v=S.vehicles.find(x=>x.id===m.vehicle_id); if(!v) return ""; return `<div class="msgitem in"><header><span><b style="color:var(--ink)">${esc(vehTitle(v))}</b> · ${v.price!=null?money(v.price):"no price set"} · ${esc(v.status)}</span><span>Fit ${m.fit}/100</span></header><div class="small">✓ ${esc(m.reasons||"")}</div>${m.concerns?`<div class="small muted">⚠ ${esc(m.concerns)}</div>`:""}</div>`; }).join("");
+  } catch(e){ box.innerHTML=""; }
 }
 function toLocalInput(iso){ const t=new Date(iso); t.setMinutes(t.getMinutes()-t.getTimezoneOffset()); return t.toISOString().slice(0,16); }
 
@@ -789,18 +808,81 @@ function openVehicle(id){
   };
 }
 
-/* ---------- AI assistant (Phase 3+) ---------- */
-function renderAssistant(){
-  const items = [
-    ["Find New Leads","Search permitted public sources for people asking about used cars near Hamilton.","Phase 4"],
-    ["Research a Lead","Paste a public post; the AI pulls out what they want, budget and timeline, and keeps the source link.","Phase 4"],
-    ["Qualify Leads","Score leads 0–100 with a written reason for each factor. Missing info scores 0, never guessed.","Phase 3"],
-    ["Match Leads to Inventory","Compare each lead's needs with your available cars and explain the fit.","Phase 3"],
-    ["Generate Outreach","Write natural replies for Instagram, Facebook, email, SMS or the website — saved as drafts for approval.","Phase 5"],
-    ["Generate Weekly Sales Report","Leads found, best sources, most-requested vehicles, common budgets and what to do next.","Phase 6"]];
-  $("#view").innerHTML = `<div class="top"><h2>AI Assistant</h2></div>
-  <div class="notice warn" style="margin-bottom:14px">The AI features aren't switched on yet. They need a Claude API key stored securely on the server (never in this page). They'll be added in the phases shown below, and each button will only report work it actually did.</div>
-  <div class="grid aibtns">${items.map(([t,dsc,ph])=>`<div class="aibtn"><h4>${t}</h4><p class="muted small" style="margin:0 0 12px">${dsc}</p><button class="btn sm" disabled>Coming in ${ph}</button></div>`).join("")}</div>`;
+/* ---------- AI assistant ---------- */
+async function ai(action, payload={}){
+  const { data, error } = await sb.functions.invoke("ai", { body:{ action, ...payload } });
+  if (error){
+    let msg = error.message;
+    try { const b = await error.context?.json?.(); if (b?.error) msg = b.error; } catch {}
+    throw new Error(msg);
+  }
+  if (data?.error) throw new Error(data.error);
+  return data;
+}
+async function renderAssistant(){
+  const V=$("#view");
+  V.innerHTML = `<div class="top"><h2>AI Assistant</h2><span id="aiStatus" class="badge s-badge">Checking…</span></div>
+  <div id="aiKeyNote"></div>
+  <div class="grid two">
+    <div class="panel"><h3>🔎 Find New Leads</h3>
+      <p class="muted small" style="margin-top:-6px">Claude searches the public web (Reddit, forums, community boards) for people near Hamilton asking about buying a used car. Every lead saved links to a page that actually came up in the search; anything it can't verify is thrown out. Facebook groups and Kijiji can't be searched automatically — use “Research a Lead” for those.</p>
+      <div class="form"><div><label>Area</label><select id="fArea">${opts([["Hamilton","Hamilton"],["Stoney Creek","Stoney Creek"],["Burlington","Burlington"],["Ancaster","Ancaster"],["Brantford","Brantford"],["Grimsby","Grimsby"]],"Hamilton","Hamilton & all nearby")}</select></div>
+      <div><label>Searches (≈ US$0.01 each)</label><select id="fMax"><option>3</option><option selected>5</option><option>8</option></select></div>
+      <div class="full"><label>Focus (optional)</label><input id="fFocus" placeholder="e.g. SUVs, first cars for students, winter AWD"></div></div>
+      <div class="actions"><button class="btn" id="fGo" data-ai>Find New Leads</button></div><div class="msg" id="fMsg"></div>
+    </div>
+    <div class="panel"><h3>📋 Research a Lead</h3>
+      <p class="muted small" style="margin-top:-6px">Found someone asking for a car in a Facebook group, on Reddit or Kijiji? Paste the link and their post. The AI pulls out what they want, budget and timeline (only what they actually said), scores them and matches your cars.</p>
+      <div class="form"><div><label>Platform</label><select id="rPlat">${opts(SOURCES.filter(s=>!["website_form","walk_in","phone"].includes(s[0])),"facebook")}</select></div>
+      <div><label>Their public username (optional)</label><input id="rUser"></div>
+      <div class="full"><label>Link to the post *</label><input id="rUrl" type="url" placeholder="https://…"></div>
+      <div class="full"><label>Post text *</label><textarea id="rText" placeholder="Paste exactly what they wrote"></textarea></div></div>
+      <div class="actions"><button class="btn" id="rGo" data-ai>Research a Lead</button></div><div class="msg" id="rMsg"></div>
+    </div>
+  </div>
+  <div class="grid two" style="margin-top:14px">
+    <div class="panel"><h3>🎯 Qualify Leads</h3><p class="muted small" style="margin-top:-6px">Scores every open lead that hasn't been scored (up to 25 at a time) on intent, budget, location, timeline and inventory match, with a reason for each. Missing info scores 0 — never guessed.</p>
+      <div class="actions"><button class="btn" id="qGo" data-ai>Qualify Leads</button></div><div class="msg" id="qMsg"></div></div>
+    <div class="panel"><h3>🚗 Match Leads to Inventory</h3><p class="muted small" style="margin-top:-6px">Re-checks open leads against the cars you have available right now and explains why each one fits (or doesn't). Run it after adding a car.</p>
+      <div class="actions"><button class="btn" id="mGo" data-ai>Match Leads to Inventory</button></div><div class="msg" id="mMsg"></div></div>
+  </div>
+  <div class="grid aibtns" style="margin-top:14px">
+    <div class="aibtn"><h4>✉️ Generate Outreach</h4><p class="muted small" style="margin:0 0 12px">Natural replies for Instagram, Facebook, email, SMS or the website — saved as drafts that need approval.</p><button class="btn sm" disabled>Coming in Phase 5</button></div>
+    <div class="aibtn"><h4>📈 Weekly Sales Report</h4><p class="muted small" style="margin:0 0 12px">Leads found, best sources, most-requested vehicles, common budgets, and what to do next.</p><button class="btn sm" disabled>Coming in Phase 6</button></div>
+  </div>
+  <div class="panel" style="margin-top:14px"><h3>Research history</h3><div id="runs" class="muted small">Loading…</div></div>`;
+
+  const busy = (btn,msgEl,on,txt) => { $$("[data-ai]").forEach(b=>b.disabled=on); if(on){ msgEl.className="msg"; msgEl.textContent=txt; } };
+  const done = async (msgEl, text, ok=true) => { msgEl.className="msg "+(ok?"ok":"err"); msgEl.textContent=text; $$("[data-ai]").forEach(b=>b.disabled=false); await loadAll(); drawRuns(); };
+
+  $("#fGo").onclick = async () => { const m=$("#fMsg"); busy(null,m,true,"Searching the web… this can take up to a minute.");
+    try { const r = await ai("find_leads",{area:$("#fArea").value, focus:$("#fFocus").value, max_searches:Number($("#fMax").value)}); await done(m, r.summary + (r.saved?" Open Leads to review them.":"")); }
+    catch(e){ await done(m, e.message, false); } };
+  $("#rGo").onclick = async () => { const m=$("#rMsg");
+    if (!/^https?:\/\//.test($("#rUrl").value.trim())) return m.className="msg err", m.textContent="Add the link to the original post.";
+    if (!$("#rText").value.trim()) return m.className="msg err", m.textContent="Paste what they wrote.";
+    busy(null,m,true,"Reading the post…");
+    try { const r = await ai("research_post",{platform:$("#rPlat").value, url:$("#rUrl").value.trim(), text:$("#rText").value, username:$("#rUser").value});
+      if (r.duplicate){ await done(m, r.message, false); openLead(r.lead_id); return; }
+      await done(m, `Saved and scored ${r.score}/100.${r.is_buyer?"":" Note: the AI thinks this person may not be a buyer."}`); $("#rUrl").value=""; $("#rText").value=""; $("#rUser").value=""; openLead(r.lead_id); }
+    catch(e){ await done(m, e.message, false); } };
+  $("#qGo").onclick = async () => { const m=$("#qMsg"); busy(null,m,true,"Scoring leads…");
+    try { const r = await ai("qualify"); const fails = (r.results||[]).filter(x=>x.error).length; await done(m, r.processed ? `Scored ${r.processed-fails} lead(s).${fails?` ${fails} failed: ${r.results.find(x=>x.error).error}`:""}` : r.message, !fails); }
+    catch(e){ await done(m, e.message, false); } };
+  $("#mGo").onclick = async () => { const m=$("#mMsg"); busy(null,m,true,"Matching leads to your cars…");
+    try { const r = await ai("match"); const n=(r.results||[]).reduce((a,x)=>a+(x.matches||0),0); await done(m, r.processed ? `Checked ${r.processed} lead(s) against ${r.inventory_count} car(s): ${n} match(es) found.` : r.message); }
+    catch(e){ await done(m, e.message, false); } };
+
+  drawRuns();
+  try { const s = await ai("status"); $("#aiStatus").className = "badge " + (s.ready?"st-available":"st-pending"); $("#aiStatus").textContent = s.ready ? "AI connected" : "API key needed";
+    if (!s.ready){ $("#aiKeyNote").innerHTML = `<div class="notice warn" style="margin-bottom:14px">The Claude API key hasn't been added yet, so these buttons will return an error. Once it's added in Supabase (Edge Functions → Secrets → <b>ANTHROPIC_API_KEY</b>) they work immediately — no update needed here.</div>`; $$("[data-ai]").forEach(b=>b.disabled=true); } }
+  catch(e){ $("#aiStatus").textContent = "AI offline"; $("#aiKeyNote").innerHTML = `<div class="notice warn" style="margin-bottom:14px">Couldn't reach the AI service: ${esc(e.message)}</div>`; }
+}
+async function drawRuns(){
+  const el=$("#runs"); if(!el) return;
+  try { const runs = await q(sb.from("research_runs").select("*").order("started_at",{ascending:false}).limit(15));
+    el.innerHTML = runs.length ? `<ul class="list">${runs.map(r=>`<li><b>${esc({web_search:"Web search",manual_paste:"Researched a post",scheduled:"Scheduled search",market_intel:"Market research",enquiry_form:"Enquiry"}[r.kind]||r.kind)}</b> · <span class="${r.status==="failed"?"":"muted"}" style="${r.status==="failed"?"color:#ff8b97":""}">${esc(r.status)}</span> · <span class="muted">${fmtDT(r.started_at)} by ${esc(staffName(r.started_by)||"—")}</span><div class="small">${esc(r.summary||r.error||r.query||"")}</div></li>`).join("")}</ul>` : "No research has been run yet. Nothing here is ever invented — runs only appear after they actually happen.";
+  } catch(e){ el.textContent = friendlyErr(e); }
 }
 
 /* ---------- settings ---------- */
