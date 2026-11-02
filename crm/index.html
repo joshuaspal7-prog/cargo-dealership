@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Car-Go CRM</title>
+<style>
+:root{
+  --bg:#111316;--panel:#191c20;--panel2:#20242a;--line:#2c3138;--ink:#f2f4f7;--mute:#98a2ae;--soft:#c9d0d8;
+  --brand:#e0283c;--brand2:#ff4d5e;--ok:#2fbf71;--warn:#f0a020;--info:#4b8df8;
+  --hot:#ff4d5e;--warm:#f59e0b;--pot:#4b8df8;--low:#6b7280;
+  --r:12px;--sh:0 8px 28px rgba(0,0,0,.35)
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+a{color:var(--brand2)}
+button,input,select,textarea{font:inherit;color:inherit}
+input,select,textarea{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:9px 11px;outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--brand2)}
+textarea{min-height:84px;resize:vertical}
+label{display:block;font-size:.78rem;color:var(--mute);margin:0 0 4px;text-transform:uppercase;letter-spacing:.4px}
+.btn{display:inline-flex;align-items:center;gap:6px;border:0;border-radius:9px;padding:9px 15px;font-weight:650;cursor:pointer;background:var(--brand);color:#fff;white-space:nowrap}
+.btn:hover{filter:brightness(1.1)}.btn:disabled{opacity:.45;cursor:not-allowed;filter:none}
+.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--ink)}
+.btn.ghost:hover{border-color:var(--soft)}
+.btn.sm{padding:6px 11px;font-size:.85rem}
+.btn.ok{background:var(--ok)}.btn.danger{background:transparent;border:1px solid #6b2630;color:#ff8b97}
+.muted{color:var(--mute)}.small{font-size:.83rem}
+.hidden{display:none!important}
+
+/* auth */
+.auth{min-height:100vh;display:grid;place-items:center;padding:16px}
+.auth .card{width:100%;max-width:380px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:28px;box-shadow:var(--sh)}
+.auth img{height:54px;border-radius:8px;display:block;margin:0 auto 10px}
+.auth h1{text-align:center;font-size:1.25rem;margin:0 0 4px}
+.auth p{text-align:center;margin:0 0 18px}
+.auth .f{margin-bottom:12px}
+.auth .row{display:flex;justify-content:space-between;margin-top:12px}
+.linkbtn{background:none;border:0;color:var(--brand2);cursor:pointer;padding:0;font-size:.88rem}
+.msg{font-size:.88rem;margin-top:10px;min-height:1.2em}
+.msg.err{color:#ff8b97}.msg.ok{color:var(--ok)}
+
+/* layout */
+.app{display:grid;grid-template-columns:230px 1fr;min-height:100vh}
+aside{background:#0c0e10;border-right:1px solid var(--line);padding:18px 12px;display:flex;flex-direction:column;gap:4px;position:sticky;top:0;height:100vh}
+.brand{display:flex;align-items:center;gap:10px;padding:2px 8px 18px}
+.brand img{height:34px;border-radius:6px}.brand b{font-size:1.02rem;line-height:1.1}.brand b span{color:var(--brand2)}
+.nav{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:none;border:0;border-radius:9px;padding:10px 12px;color:var(--soft);cursor:pointer;font-weight:550}
+.nav:hover{background:var(--panel)}.nav.on{background:var(--panel2);color:#fff;box-shadow:inset 3px 0 0 var(--brand)}
+.nav .ct{margin-left:auto;background:var(--brand);color:#fff;border-radius:20px;font-size:.72rem;padding:1px 7px}
+aside .me{margin-top:auto;border-top:1px solid var(--line);padding:12px 8px 0;font-size:.82rem;color:var(--mute);word-break:break-all}
+main{padding:24px 28px 60px;min-width:0}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+.top h2{margin:0;font-size:1.45rem}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px 18px}
+.panel h3{margin:0 0 12px;font-size:1rem}
+.grid{display:grid;gap:14px}
+.kpis{grid-template-columns:repeat(4,minmax(0,1fr))}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px}
+.kpi small{color:var(--mute);font-size:.78rem;text-transform:uppercase;letter-spacing:.4px}
+.kpi b{display:block;font-size:1.75rem;margin-top:4px;font-variant-numeric:tabular-nums}
+.kpi.accent b{color:var(--brand2)}
+.two{grid-template-columns:1.4fr 1fr}
+
+/* pipeline flow */
+.flow{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px}
+.stage{flex:1;min-width:104px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px;text-align:center;position:relative;cursor:pointer}
+.stage small{display:block;color:var(--mute);font-size:.74rem}.stage b{font-size:1.35rem}
+.stage.sold b{color:var(--ok)}.stage.lost b{color:var(--low)}
+.bar{height:8px;border-radius:8px;background:var(--panel2);overflow:hidden}.bar i{display:block;height:100%;background:var(--brand)}
+
+.list{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none}
+.list li{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.act{display:flex;gap:10px;align-items:flex-start}
+.act .dot{width:8px;height:8px;border-radius:50%;background:var(--brand2);margin-top:7px;flex:none}
+.act.ai .dot{background:var(--info)}.act.public_form .dot{background:var(--ok)}
+.rec{display:flex;gap:10px;align-items:center;justify-content:space-between}
+
+/* tables */
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.toolbar input{max-width:260px}.toolbar select{width:auto}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r)}
+table{width:100%;border-collapse:collapse;background:var(--panel)}
+th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:.74rem;text-transform:uppercase;letter-spacing:.4px;color:var(--mute);background:var(--panel2);white-space:nowrap}
+tbody tr{cursor:pointer}tbody tr:hover{background:var(--panel2)}
+tr:last-child td{border-bottom:0}
+.badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:.74rem;font-weight:700;letter-spacing:.3px;white-space:nowrap}
+.t-hot{background:rgba(255,77,94,.16);color:var(--hot)}.t-warm{background:rgba(245,158,11,.16);color:var(--warm)}
+.t-potential{background:rgba(75,141,248,.16);color:var(--pot)}.t-low{background:rgba(107,114,128,.22);color:#aab1bb}
+.t-none{background:var(--panel2);color:var(--mute)}
+.s-badge{background:var(--panel2);border:1px solid var(--line);color:var(--soft)}
+.s-sold{color:var(--ok);border-color:#1f5a3b}.s-lost{color:var(--low)}
+.empty{padding:36px 16px;text-align:center;color:var(--mute)}
+
+/* kanban */
+.kanban{display:grid;grid-template-columns:repeat(8,minmax(190px,1fr));gap:10px;overflow-x:auto;padding-bottom:8px}
+.col{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:10px;min-height:200px}
+.col.drop{border-color:var(--brand2)}
+.col h4{margin:0 0 8px;font-size:.84rem;display:flex;justify-content:space-between;color:var(--soft)}
+.lcard{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:9px 10px;margin-bottom:8px;cursor:grab}
+.lcard b{display:block;font-size:.9rem}.lcard .muted{font-size:.8rem}
+
+/* inventory */
+.inv{grid-template-columns:repeat(auto-fill,minmax(250px,1fr))}
+.vcard{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;cursor:pointer;display:flex;flex-direction:column}
+.vcard:hover{border-color:var(--soft)}
+.vcard .ph{aspect-ratio:16/10;background:var(--panel2) center/cover no-repeat;display:grid;place-items:center;color:var(--mute)}
+.vcard .bd{padding:12px 14px}
+.vcard h4{margin:0 0 4px}.price{font-weight:800;color:var(--brand2)}
+.st-available{background:rgba(47,191,113,.15);color:var(--ok)}.st-pending{background:rgba(240,160,32,.15);color:var(--warn)}
+.st-sold{background:rgba(107,114,128,.22);color:#aab1bb}.st-hidden{background:var(--panel2);color:var(--mute)}
+
+/* drawer */
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:40}
+.drawer{position:fixed;top:0;right:0;height:100%;width:min(720px,100%);background:var(--panel);border-left:1px solid var(--line);z-index:41;display:flex;flex-direction:column;box-shadow:var(--sh)}
+.drawer header{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:16px 20px;border-bottom:1px solid var(--line)}
+.drawer header h3{margin:0;font-size:1.1rem}
+.drawer .body{padding:16px 20px 40px;overflow-y:auto;flex:1}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);padding:0 20px;overflow-x:auto}
+.tab{background:none;border:0;padding:10px 12px;color:var(--mute);cursor:pointer;border-bottom:2px solid transparent;font-weight:600;white-space:nowrap}
+.tab.on{color:#fff;border-color:var(--brand)}
+.form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.form .full{grid-column:1/-1}
+.sec{margin:20px 0 8px;font-size:.8rem;color:var(--brand2);text-transform:uppercase;letter-spacing:.6px;font-weight:700}
+.scoregrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+.msgitem{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:8px;background:var(--panel2)}
+.msgitem.out{border-left:3px solid var(--brand)}.msgitem.in{border-left:3px solid var(--ok)}
+.msgitem header{all:unset;display:flex;justify-content:space-between;gap:8px;font-size:.8rem;color:var(--mute);margin-bottom:4px}
+.pre{white-space:pre-wrap;word-break:break-word}
+.notice{border:1px solid var(--line);background:var(--panel2);border-radius:10px;padding:10px 12px;font-size:.88rem}
+.notice.warn{border-color:#6b4a12;color:#ffd38a}.notice.good{border-color:#1f5a3b;color:#9fe3bd}
+.thumbs{display:flex;gap:6px;flex-wrap:wrap}
+.thumbs div{position:relative}.thumbs img{width:86px;height:60px;object-fit:cover;border-radius:6px;border:1px solid var(--line)}
+.thumbs button{position:absolute;top:2px;right:2px;background:#000a;border:0;color:#fff;border-radius:50%;width:20px;height:20px;cursor:pointer;line-height:1}
+.aibtns{grid-template-columns:repeat(auto-fill,minmax(230px,1fr))}
+.aibtn{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px}
+.aibtn h4{margin:0 0 6px}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#000;border:1px solid var(--line);padding:10px 16px;border-radius:10px;z-index:60;max-width:90vw}
+.toast.err{border-color:#6b2630;color:#ff8b97}
+
+@media (max-width:1100px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.two{grid-template-columns:1fr}}
+@media (max-width:760px){
+  .app{grid-template-columns:1fr}
+  aside{position:sticky;top:0;height:auto;flex-direction:row;overflow-x:auto;padding:8px;z-index:30;gap:2px}
+  .brand{padding:0 6px 0 0}.brand b{display:none}
+  .nav{width:auto;padding:8px 10px;font-size:.88rem}.nav.on{box-shadow:inset 0 -3px 0 var(--brand)}
+  aside .me{display:none}
+  main{padding:16px 16px 50px}
+  .form{grid-template-columns:1fr}.scoregrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .toolbar input{max-width:none}
+}
+</style>
+</head>
+<body>
+
+<!-- ============ AUTH ============ -->
+<section id="auth" class="auth hidden">
+  <div class="card">
+    <img src="../logo.jpg" alt="Car-Go logo" onerror="this.remove()">
+    <h1>Car-Go CRM</h1>
+    <p class="muted small" id="authSub">Staff sign in</p>
+    <form id="authForm">
+      <div class="f"><label for="aEmail">Email</label><input id="aEmail" type="email" autocomplete="username" required></div>
+      <div class="f" id="aPassWrap"><label for="aPass">Password</label><input id="aPass" type="password" autocomplete="current-password" minlength="8"></div>
+      <button class="btn" style="width:100%;justify-content:center" id="aSubmit">Sign in</button>
+    </form>
+    <div class="row">
+      <button class="linkbtn" id="aToggle" type="button">First time? Create account</button>
+      <button class="linkbtn" id="aForgot" type="button">Forgot password</button>
+    </div>
+    <div class="msg" id="aMsg"></div>
+  </div>
+</section>
+
+<section id="noaccess" class="auth hidden">
+  <div class="card">
+    <h1>No access yet</h1>
+    <p class="muted">You're signed in as <b id="naEmail"></b>, but this account hasn't been invited to the Car-Go CRM. Ask the owner to add your email in Settings → Staff, then sign out and back in.</p>
+    <button class="btn ghost" style="width:100%;justify-content:center" data-signout>Sign out</button>
+  </div>
+</section>
+
+<section id="recovery" class="auth hidden">
+  <div class="card">
+    <h1>Set a new password</h1>
+    <form id="recForm"><div class="f"><label for="recPass">New password</label><input id="recPass" type="password" minlength="8" required autocomplete="new-password"></div>
+    <button class="btn" style="width:100%;justify-content:center">Save password</button></form>
+    <div class="msg" id="recMsg"></div>
+  </div>
+</section>
+
+<!-- ============ APP ============ -->
+<div id="app" class="app hidden">
+  <aside>
+    <div class="brand"><img src="../logo.jpg" alt="" onerror="this.remove()"><b>Car-Go <span>CRM</span></b></div>
+    <button class="nav" data-view="dashboard">📊 Dashboard</button>
+    <button class="nav" data-view="leads">👥 Leads <span class="ct hidden" id="ctNew"></span></button>
+    <button class="nav" data-view="pipeline">🧭 Pipeline</button>
+    <button class="nav" data-view="inventory">🚗 Inventory</button>
+    <button class="nav" data-view="assistant">✨ AI Assistant</button>
+    <button class="nav" data-view="settings">⚙️ Settings</button>
+    <div class="me"><div id="meName"></div><button class="linkbtn" data-signout style="margin-top:6px">Sign out</button></div>
+  </aside>
+  <main id="view"></main>
+</div>
+
+<div id="drawerHost"></div>
+<div id="toastHost"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+"use strict";
+/* Public, browser-safe values. The anon key only allows what the database security rules permit. */
+const SUPABASE_URL = "https://mjbjrqrmfpjmnaijbtso.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1qYmpycXJtZnBqbW5haWpidHNvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM0OTc1OTIsImV4cCI6MjEwOTA3MzU5Mn0.5szlgPPGnvBzaduK54RhIW4-EfGAPrgPJpy1NpnLpXE";
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const STAGES = [
+  ["new","New Lead"],["researching","Researching"],["qualified","Qualified"],["contacted","Contacted"],
+  ["responded","Responded"],["appointment","Appointment Booked"],["sold","Sold"],["lost","Lost"]];
+const STAGE_LABEL = Object.fromEntries(STAGES);
+const SOURCES = [
+  ["website_form","Website form"],["instagram","Instagram"],["facebook","Facebook"],["reddit","Reddit"],
+  ["kijiji","Kijiji"],["google_web","Google / web"],["referral","Referral"],["walk_in","Walk-in"],["phone","Phone call"],["other","Other"]];
+const SOURCE_LABEL = Object.fromEntries(SOURCES);
+const URL_REQUIRED = new Set(["instagram","facebook","reddit","kijiji","google_web"]);
+const PERMS = [
+  ["none","None — do not message privately"],["public_reply_only","Public reply only (in the original thread)"],
+  ["implied","Implied (enquiry / business relationship)"],["express","Express consent (opted in)"],["unsubscribed","Unsubscribed / do not contact"]];
+const PERM_LABEL = Object.fromEntries(PERMS);
+const TIER_LABEL = {hot:"HOT LEAD",warm:"WARM LEAD",potential:"POTENTIAL LEAD",low:"LOW PRIORITY"};
+const FACTORS = [["intent","Buying intent",30],["budget","Budget clarity",20],["location","Location",15],["timeline","Timeline",15],["match","Inventory match",20]];
+const CHANNELS = [["email","Email"],["sms","SMS"],["instagram","Instagram DM"],["facebook","Facebook message"],["website","Website reply"],["phone","Phone call"],["in_person","In person"],["public_reply","Public reply in thread"]];
+const CH_LABEL = Object.fromEntries(CHANNELS);
+const CONSENT_TYPES = [["express","Express consent (they opted in)"],["implied_inquiry","Implied — they enquired (6 months)"],["implied_business_relationship","Implied — existing business relationship (2 years)"],["response_to_request","Responding to their direct request"],["withdrawn","Withdrawn / unsubscribed (STOP)"]];
+const CONSENT_LABEL = Object.fromEntries(CONSENT_TYPES);
+
+const S = {user:null, me:null, staff:[], leads:[], vehicles:[], settings:null, view:"dashboard", filters:{q:"",status:"",tier:"",source:""}};
+
+/* ---------- helpers ---------- */
+const $ = (s, r=document) => r.querySelector(s);
+const $$ = (s, r=document) => [...r.querySelectorAll(s)];
+const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const money = n => n == null || n === "" ? "" : "$" + Number(n).toLocaleString("en-CA",{maximumFractionDigits:0});
+const km = n => n == null ? "" : Number(n).toLocaleString("en-CA") + " km";
+const fmtDate = d => d ? new Date(d).toLocaleDateString("en-CA",{month:"short",day:"numeric",year:"numeric"}) : "";
+const fmtDT = d => d ? new Date(d).toLocaleString("en-CA",{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}) : "";
+const ago = d => { const s=(Date.now()-new Date(d))/1000; if(s<60)return"just now"; if(s<3600)return Math.floor(s/60)+"m ago"; if(s<86400)return Math.floor(s/3600)+"h ago"; return Math.floor(s/86400)+"d ago"; };
+const opts = (list, sel, blank) => (blank!=null?`<option value="">${esc(blank)}</option>`:"") + list.map(([v,l])=>`<option value="${esc(v)}"${String(sel??"")===String(v)?" selected":""}>${esc(l)}</option>`).join("");
+const leadName = l => l.display_name || l.contact_handle || l.contact_email || (l.source_url ? SOURCE_LABEL[l.source_platform]+" post" : "Unnamed lead");
+const staffName = id => { const s=S.staff.find(x=>x.id===id); return s ? (s.full_name||s.email) : ""; };
+const vehTitle = v => [v.year,v.make,v.model,v.trim].filter(Boolean).join(" ");
+const tierBadge = l => l.tier ? `<span class="badge t-${l.tier}">${TIER_LABEL[l.tier]} · ${l.score}</span>` : `<span class="badge t-none">Not scored</span>`;
+const stageBadge = s => `<span class="badge s-badge s-${s}">${esc(STAGE_LABEL[s]||s)}</span>`;
+const budgetText = l => l.budget_min||l.budget_max ? [money(l.budget_min),money(l.budget_max)].filter(Boolean).join(" – ") : (l.budget_text||"");
+const num = v => v === "" || v == null ? null : Number(v);
+const nul = v => (v ?? "").toString().trim() === "" ? null : v.toString().trim();
+
+function toast(t, err){ const h=$("#toastHost"); h.innerHTML=`<div class="toast${err?" err":""}">${esc(t)}</div>`; clearTimeout(toast.t); toast.t=setTimeout(()=>h.innerHTML="",err?6000:2800); }
+function friendlyErr(e){
+  const m = e?.message || String(e);
+  if (/leads_source_url_uniq/.test(m)) return "A lead with this source URL already exists.";
+  if (/leads_email_uniq/.test(m)) return "A lead with this email already exists.";
+  if (/leads_phone_uniq/.test(m)) return "A lead with this phone number already exists.";
+  if (/vehicles_vin_key/.test(m)) return "A vehicle with this VIN already exists.";
+  return m.replace(/^.*CASL check failed: /,"CASL safeguard: ");
+}
+async function q(promise){ const {data,error} = await promise; if (error) throw error; return data; }
+async function log(action, entity, entity_id, details){
+  try { await sb.from("activity_log").insert({actor_id:S.user.id, actor_kind:"staff", action, entity, entity_id, details}); } catch(e){}
+}
+function show(id){ ["auth","noaccess","recovery","app"].forEach(x=>$("#"+x).classList.toggle("hidden", x!==id)); }
+
+/* ---------- auth ---------- */
+let authMode = "signin";
+function setAuthMode(m){
+  authMode = m;
+  $("#authSub").textContent = m==="signin" ? "Staff sign in" : m==="signup" ? "Create your staff account (invited emails only)" : "Reset your password";
+  $("#aSubmit").textContent = m==="signin" ? "Sign in" : m==="signup" ? "Create account" : "Send reset link";
+  $("#aPassWrap").classList.toggle("hidden", m==="reset");
+  $("#aToggle").textContent = m==="signin" ? "First time? Create account" : "Back to sign in";
+  $("#aPass").autocomplete = m==="signup" ? "new-password" : "current-password";
+  $("#aMsg").textContent=""; $("#aMsg").className="msg";
+}
+$("#aToggle").onclick = () => setAuthMode(authMode==="signin" ? "signup" : "signin");
+$("#aForgot").onclick = () => setAuthMode("reset");
+$("#authForm").onsubmit = async e => {
+  e.preventDefault();
+  const email = $("#aEmail").value.trim(), pass = $("#aPass").value, msg = $("#aMsg"), btn = $("#aSubmit");
+  msg.className="msg"; msg.textContent=""; btn.disabled=true;
+  try {
+    const redirectTo = location.origin + location.pathname;
+    if (authMode==="signin"){
+      if (pass.length<8) throw new Error("Password must be at least 8 characters.");
+      await q(sb.auth.signInWithPassword({email, password:pass}));
+    } else if (authMode==="signup"){
+      if (pass.length<8) throw new Error("Password must be at least 8 characters.");
+      const d = await q(sb.auth.signUp({email, password:pass, options:{emailRedirectTo:redirectTo}}));
+      if (!d.session){ msg.className="msg ok"; msg.textContent="Check your email to confirm your account, then sign in."; }
+    } else {
+      await q(sb.auth.resetPasswordForEmail(email,{redirectTo}));
+      msg.className="msg ok"; msg.textContent="If that email has an account, a reset link is on its way.";
+    }
+  } catch(err){ msg.className="msg err"; msg.textContent = err.message; }
+  btn.disabled=false;
+};
+$("#recForm").onsubmit = async e => {
+  e.preventDefault();
+  try { await q(sb.auth.updateUser({password:$("#recPass").value})); $("#recMsg").className="msg ok"; $("#recMsg").textContent="Saved."; setTimeout(boot,600); }
+  catch(err){ $("#recMsg").className="msg err"; $("#recMsg").textContent=err.message; }
+};
+document.addEventListener("click", async e => { if (e.target.closest("[data-signout]")) { await sb.auth.signOut(); location.reload(); } });
+
+let recovering = false;
+sb.auth.onAuthStateChange((ev) => { if (ev==="PASSWORD_RECOVERY"){ recovering=true; show("recovery"); } });
+
+async function boot(){
+  const { data:{ session } } = await sb.auth.getSession();
+  if (recovering) return;
+  if (!session){ setAuthMode("signin"); show("auth"); return; }
+  S.user = session.user;
+  const me = await sb.from("staff").select("*").eq("id", S.user.id).maybeSingle();
+  if (!me.data || !me.data.active){ $("#naEmail").textContent = S.user.email; show("noaccess"); return; }
+  S.me = me.data;
+  $("#meName").textContent = (S.me.full_name ? S.me.full_name+" · " : "") + S.me.email;
+  show("app");
+  await loadAll();
+  const v = (location.hash||"").slice(1);
+  go(["dashboard","leads","pipeline","inventory","assistant","settings"].includes(v) ? v : "dashboard");
+}
+
+/* ---------- data ---------- */
+async function loadAll(){
+  const [staff, leads, vehicles, settings] = await Promise.all([
+    q(sb.from("staff").select("*").order("created_at")),
+    q(sb.from("leads").select("*").order("created_at",{ascending:false})),
+    q(sb.from("vehicles").select("*").order("created_at",{ascending:false})),
+    q(sb.from("settings").select("*").maybeSingle())
+  ]);
+  Object.assign(S, {staff, leads, vehicles, settings});
+  const n = leads.filter(l=>l.status==="new").length;
+  $("#ctNew").textContent = n; $("#ctNew").classList.toggle("hidden", !n);
+}
+async function refresh(){ await loadAll(); render(); }
+
+/* ---------- routing ---------- */
+$$(".nav").forEach(b => b.onclick = () => go(b.dataset.view));
+function go(v){ S.view=v; history.replaceState(null,"","#"+v); $$(".nav").forEach(b=>b.classList.toggle("on", b.dataset.view===v)); render(); window.scrollTo(0,0); }
+function render(){ ({dashboard:renderDashboard, leads:renderLeads, pipeline:renderPipeline, inventory:renderInventory, assistant:renderAssistant, settings:renderSettings})[S.view](); }
+
+/* ---------- dashboard ---------- */
+async function renderDashboard(){
+  const V = $("#view");
+  V.innerHTML = `<div class="top"><h2>Dashboard</h2><div class="muted small">${new Date().toLocaleDateString("en-CA",{weekday:"long",month:"long",day:"numeric"})}</div></div><div class="muted">Loading…</div>`;
+  let st, acts;
+  try {
+    [st, acts] = await Promise.all([ q(sb.rpc("dashboard_stats")), q(sb.from("activity_log").select("*").order("created_at",{ascending:false}).limit(12)) ]);
+  } catch(e){ V.innerHTML = `<div class="panel">Couldn't load dashboard: ${esc(friendlyErr(e))}</div>`; return; }
+  const p = st.pipeline || {};
+  const total = st.total_leads || 0;
+  const srcMax = Math.max(1, ...Object.values(st.by_source||{}));
+  const tiles = [
+    ["Total leads", st.total_leads],["New this week", st.new_this_week],["Qualified leads", st.qualified],["Hot leads", st.hot, true],
+    ["Leads contacted", st.contacted],["Appointments booked", st.appointments],["Potential sales", money(st.potential_sales)||"$0"],["Conversion rate", (st.conversion_rate||0)+"%"]
+  ];
+  V.innerHTML = `
+  <div class="top"><h2>Dashboard</h2><div class="muted small">${new Date().toLocaleDateString("en-CA",{weekday:"long",month:"long",day:"numeric"})}</div></div>
+  <div class="grid kpis">${tiles.map(([k,v,a])=>`<div class="kpi${a?" accent":""}"><small>${k}</small><b>${esc(v??0)}</b></div>`).join("")}</div>
+  <div class="panel" style="margin-top:14px"><h3>Sales pipeline</h3>
+    <div class="flow">${STAGES.map(([s,l],i)=>`<div class="stage ${s}" data-stage="${s}"><small>${l}</small><b>${p[s]||0}</b></div>${i<5?'<div class="muted" style="align-self:center">→</div>':""}`).join("")}</div>
+    <p class="muted small" style="margin:10px 0 0">Potential sales = budget (or matched vehicle price) of leads that are qualified, responded, or have an appointment. Conversion = sold ÷ all leads.</p>
+  </div>
+  <div class="grid two" style="margin-top:14px">
+    <div class="panel"><h3>Recommended next actions</h3><ul class="list" id="recs">${recommendations(st).map(r=>`<li class="rec"><div>${r.html}</div>${r.btn||""}</li>`).join("")}</ul></div>
+    <div class="panel"><h3>Recent activity</h3>
+      ${acts.length ? `<ul class="list">${acts.map(a=>`<li class="act ${a.actor_kind}"><span class="dot"></span><div><div>${esc(activityText(a))}</div><div class="muted small">${a.actor_kind==="public_form"?"Website":a.actor_kind==="ai_agent"?"AI agent":esc(staffName(a.actor_id)||"Staff")} · ${ago(a.created_at)}</div></div></li>`).join("")}</ul>` : `<div class="empty">No activity yet. Every real action — enquiries, edits, research runs — shows up here.</div>`}
+    </div>
+  </div>
+  <div class="panel" style="margin-top:14px"><h3>Leads by source</h3>
+    ${Object.keys(st.by_source||{}).length ? Object.entries(st.by_source).sort((a,b)=>b[1]-a[1]).map(([k,n])=>`<div style="display:grid;grid-template-columns:140px 1fr 40px;gap:10px;align-items:center;margin-bottom:8px"><span class="small">${esc(SOURCE_LABEL[k]||k)}</span><div class="bar"><i style="width:${n/srcMax*100}%"></i></div><b class="small">${n}</b></div>`).join("") : `<div class="muted small">No leads yet.</div>`}
+  </div>`;
+  $$(".stage",V).forEach(el=>el.onclick=()=>{ S.filters={q:"",status:el.dataset.stage,tier:"",source:""}; go("leads"); });
+  $$("[data-openlead]",V).forEach(b=>b.onclick=()=>openLead(b.dataset.openlead));
+  $$("[data-go]",V).forEach(b=>b.onclick=()=>go(b.dataset.go));
+  $$("[data-openveh]",V).forEach(b=>b.onclick=()=>openVehicle(b.dataset.openveh));
+  $("#addLeadRec",V)?.addEventListener("click",()=>openLead(null));
+}
+function activityText(a){
+  const d = a.details||{};
+  const map = {
+    enquiry_received: `New website enquiry${d.vehicle?" about the "+d.vehicle:""}`,
+    lead_created: `Added lead: ${d.name||""}`, lead_updated: `Updated lead: ${d.name||""}`, lead_deleted: `Deleted lead: ${d.name||""}`,
+    status_changed: `${d.name||"Lead"} moved to ${STAGE_LABEL[d.to]||d.to}`, note_added: `Note added on ${d.name||"a lead"}`,
+    message_logged: `Message logged for ${d.name||"a lead"}`, message_approved: `Outreach approved for ${d.name||"a lead"}`, message_sent: `Outreach marked sent to ${d.name||"a lead"}`,
+    consent_recorded: `Consent recorded for ${d.name||"a lead"} (${CONSENT_LABEL[d.type]||d.type})`,
+    vehicle_created: `Added vehicle: ${d.title||""}`, vehicle_updated: `Updated vehicle: ${d.title||""}`, vehicle_deleted: `Removed vehicle: ${d.title||""}`,
+    staff_invited: `Invited ${d.email||"staff"}`, leads_exported: `Exported ${d.count} leads to CSV`
+  };
+  return map[a.action] || a.action.replace(/_/g," ");
+}
+function recommendations(){
+  const out = [], today = new Date().toISOString().slice(0,10);
+  const open = S.leads.filter(l=>!["sold","lost"].includes(l.status));
+  const due = open.filter(l=>l.next_follow_up && l.next_follow_up<=today).sort((a,b)=>a.next_follow_up.localeCompare(b.next_follow_up));
+  due.slice(0,3).forEach(l=>out.push({html:`<b>Follow up with ${esc(leadName(l))}</b><div class="muted small">${l.next_follow_up<today?"Overdue since":"Due"} ${fmtDate(l.next_follow_up+"T12:00")}</div>`, btn:`<button class="btn sm ghost" data-openlead="${l.id}">Open</button>`}));
+  const unanswered = open.filter(l=>l.source_platform==="website_form" && ["new","researching"].includes(l.status));
+  unanswered.slice(0,3).forEach(l=>out.push({html:`<b>Reply to website enquiry from ${esc(leadName(l))}</b><div class="muted small">Received ${ago(l.created_at)}${l.looking_for?" · "+esc(l.looking_for):""}</div>`, btn:`<button class="btn sm" data-openlead="${l.id}">Reply</button>`}));
+  const hotWaiting = open.filter(l=>l.score>=60 && ["new","researching","qualified"].includes(l.status) && l.source_platform!=="website_form").sort((a,b)=>b.score-a.score);
+  hotWaiting.slice(0,3).forEach(l=>out.push({html:`<b>${l.tier==="hot"?"Hot":"Warm"} lead not contacted: ${esc(leadName(l))}</b><div class="muted small">Score ${l.score} · ${esc(PERM_LABEL[l.contact_permission])}</div>`, btn:`<button class="btn sm ghost" data-openlead="${l.id}">Open</button>`}));
+  const unscored = open.filter(l=>l.score==null).length;
+  if (unscored) out.push({html:`<b>${unscored} lead${unscored>1?"s":""} not scored yet</b><div class="muted small">Score them so you know who to call first.</div>`, btn:`<button class="btn sm ghost" data-go="leads">View</button>`});
+  S.vehicles.filter(v=>v.status==="available" && v.price==null).forEach(v=>out.push({html:`<b>Add a price to the ${esc(vehTitle(v))}</b><div class="muted small">Budget matching needs a price.</div>`, btn:`<button class="btn sm ghost" data-openveh="${v.id}">Edit</button>`}));
+  if (!S.leads.length) out.push({html:`<b>Add your first lead</b><div class="muted small">Log a walk-in, a phone call, or a public post you found. Every lead keeps its source.</div>`, btn:`<button class="btn sm" id="addLeadRec">Add lead</button>`});
+  if (!out.length) out.push({html:`<span class="muted">You're all caught up. 🎉</span>`});
+  return out.slice(0,8);
+}
+
+/* ---------- leads list ---------- */
+function filteredLeads(){
+  const f=S.filters, t=f.q.trim().toLowerCase();
+  return S.leads.filter(l=>
+    (!f.status||l.status===f.status) && (!f.source||l.source_platform===f.source) &&
+    (!f.tier|| (f.tier==="none" ? !l.tier : l.tier===f.tier)) &&
+    (!t || [l.display_name,l.contact_email,l.contact_phone,l.contact_handle,l.looking_for,l.vehicle_preferences,l.location,l.source_url,l.source_excerpt].some(x=>(x||"").toLowerCase().includes(t))));
+}
+function renderLeads(){
+  const V=$("#view"), f=S.filters;
+  V.innerHTML = `
+  <div class="top"><h2>Leads</h2><div style="display:flex;gap:8px"><button class="btn ghost" id="exportCsv">⬇ Export CSV</button><button class="btn" id="addLead">+ Add lead</button></div></div>
+  <div class="toolbar">
+    <input id="fq" placeholder="Search name, vehicle, location, URL…" value="${esc(f.q)}">
+    <select id="fs">${opts(STAGES,f.status,"All statuses")}</select>
+    <select id="ft">${opts([["hot","Hot"],["warm","Warm"],["potential","Potential"],["low","Low priority"],["none","Not scored"]],f.tier,"All scores")}</select>
+    <select id="fsrc">${opts(SOURCES,f.source,"All sources")}</select>
+  </div>
+  <div class="tablewrap"><table><thead><tr><th>Lead</th><th>Source</th><th>Looking for</th><th>Budget</th><th>Score</th><th>Status</th><th>Follow-up</th><th>Assigned</th></tr></thead><tbody id="ltb"></tbody></table></div>`;
+  const draw = () => {
+    const rows = filteredLeads();
+    $("#ltb").innerHTML = rows.length ? rows.map(l=>`<tr data-id="${l.id}">
+      <td><b>${esc(leadName(l))}</b><div class="muted small">${esc(l.location||"")}</div></td>
+      <td>${esc(SOURCE_LABEL[l.source_platform])}<div class="muted small">${fmtDate(l.discovered_at)}</div></td>
+      <td>${esc(l.looking_for||l.vehicle_preferences||"")}</td><td>${esc(budgetText(l))}</td>
+      <td>${tierBadge(l)}</td><td>${stageBadge(l.status)}</td>
+      <td>${l.next_follow_up?fmtDate(l.next_follow_up+"T12:00"):""}</td><td>${esc(staffName(l.assigned_to))}</td></tr>`).join("")
+      : `<tr><td colspan="8" class="empty">${S.leads.length?"No leads match these filters.":"No leads yet. Click “Add lead” to log a real enquiry or a public post you found."}</td></tr>`;
+    $$("#ltb tr[data-id]").forEach(tr=>tr.onclick=()=>openLead(tr.dataset.id));
+  };
+  draw();
+  $("#fq").oninput = e => { f.q=e.target.value; draw(); };
+  $("#fs").onchange = e => { f.status=e.target.value; draw(); };
+  $("#ft").onchange = e => { f.tier=e.target.value; draw(); };
+  $("#fsrc").onchange = e => { f.source=e.target.value; draw(); };
+  $("#addLead").onclick = () => openLead(null);
+  $("#exportCsv").onclick = exportCsv;
+}
+function exportCsv(){
+  const rows = filteredLeads();
+  if (!rows.length) return toast("No leads to export.", true);
+  const cols = [["display_name","Name"],["contact_email","Email"],["contact_phone","Phone"],["contact_handle","Handle"],["source_platform","Source"],["source_url","Source URL"],["discovered_at","Discovered"],["location","Location"],["looking_for","Looking for"],["vehicle_preferences","Vehicle preferences"],["budget_min","Budget min"],["budget_max","Budget max"],["budget_text","Budget notes"],["timeline","Timeline"],["contact_permission","Contact permission"],["score","Score"],["tier","Tier"],["status","Status"],["assigned_to","Assigned to"],["next_follow_up","Next follow-up"],["why_lead","Why a lead"],["suggested_next_action","Next action"]];
+  const cell = v => { let s = v==null ? "" : String(v); if (/^[=+\-@\t\r]/.test(s)) s = "'"+s; return /[",\n\r]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s; };
+  const csv = [cols.map(c=>c[1]).join(",")].concat(rows.map(l=>cols.map(([k])=>cell(k==="assigned_to"?staffName(l[k]):l[k])).join(","))).join("\r\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob(["﻿"+csv],{type:"text/csv"}));
+  a.download = `cargo-leads-${new Date().toISOString().slice(0,10)}.csv`; a.click();
+  log("leads_exported","lead",null,{count:rows.length});
+}
+
+/* ---------- drawer ---------- */
+function openDrawer(title, tabs, onClose){
+  const host=$("#drawerHost");
+  host.innerHTML = `<div class="scrim"></div><div class="drawer" role="dialog" aria-modal="true"><header><h3>${title}</h3><button class="btn ghost sm" id="dClose">✕ Close</button></header>${tabs?`<div class="tabs">${tabs.map(([k,l],i)=>`<button class="tab${i?"":" on"}" data-tab="${k}">${l}</button>`).join("")}</div>`:""}<div class="body" id="dBody"></div></div>`;
+  const close = () => { host.innerHTML=""; document.removeEventListener("keydown",esck); onClose&&onClose(); };
+  const esck = e => { if (e.key==="Escape") close(); };
+  document.addEventListener("keydown",esck);
+  $(".scrim",host).onclick = close; $("#dClose").onclick = close;
+  return {close, body:$("#dBody")};
+}
+
+/* ---------- lead profile ---------- */
+async function openLead(id){
+  const l = id ? S.leads.find(x=>x.id===id) : null;
+  if (id && !l) return toast("Lead not found — refreshing.", true), refresh();
+  let dirty=false;
+  const d = openDrawer(l ? esc(leadName(l)) : "Add a lead", l ? [["details","Details"],["convo","Conversation"],["notes","Notes"],["consent","Consent"]] : null, ()=>{ if(dirty) refresh(); });
+  const tab = k => { $$(".tab").forEach(t=>t.classList.toggle("on",t.dataset.tab===k)); ({details:leadDetails, convo:leadConvo, notes:leadNotes, consent:leadConsent})[k](d, l, ()=>dirty=true); };
+  $$(".tab").forEach(t=>t.onclick=()=>tab(t.dataset.tab));
+  leadDetails(d, l, ()=>dirty=true);
+}
+
+function leadDetails(d, l, markDirty){
+  const x = l || {source_platform:"walk_in", status:"new", contact_permission:"none"};
+  const b = x.score_breakdown || {};
+  d.body.innerHTML = `
+  ${l?`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">${tierBadge(l)} ${stageBadge(l.status)} <span class="badge s-badge">${esc(PERM_LABEL[l.contact_permission])}</span></div>`:""}
+  <form id="lf" class="form">
+    <div class="sec full">Source (required — every lead must be traceable)</div>
+    <div><label>Source platform</label><select name="source_platform">${opts(SOURCES,x.source_platform)}</select></div>
+    <div><label>Date discovered</label><input type="date" name="discovered_at" value="${esc((x.discovered_at||new Date().toISOString()).slice(0,10))}"></div>
+    <div class="full"><label>Original post / enquiry URL <span id="urlReq"></span></label><input name="source_url" type="url" placeholder="https://…" value="${esc(x.source_url)}"></div>
+    <div class="full"><label>What they wrote (paste the original text, or describe the walk-in/call)</label><textarea name="source_excerpt">${esc(x.source_excerpt)}</textarea></div>
+
+    <div class="sec full">Who</div>
+    <div><label>Name or public username</label><input name="display_name" value="${esc(x.display_name)}" placeholder="Only if they shared it"></div>
+    <div><label>Social handle</label><input name="contact_handle" value="${esc(x.contact_handle)}" placeholder="@handle / u/username"></div>
+    <div><label>Email (only if they gave it to you)</label><input name="contact_email" type="email" value="${esc(x.contact_email)}"></div>
+    <div><label>Phone (only if they gave it to you)</label><input name="contact_phone" value="${esc(x.contact_phone)}"></div>
+    <div><label>Location</label><input name="location" list="towns" value="${esc(x.location)}"><datalist id="towns">${["Hamilton","Stoney Creek","Burlington","Ancaster","Dundas","Waterdown","Grimsby","Brantford","Binbrook","Caledonia","St. Catharines","Oakville"].map(t=>`<option>${t}`).join("")}</datalist></div>
+    <div><label>Contact permission</label><select name="contact_permission">${opts(PERMS,x.contact_permission)}</select></div>
+
+    <div class="sec full">What they want</div>
+    <div class="full"><label>Looking for</label><input name="looking_for" value="${esc(x.looking_for)}" placeholder="e.g. reliable first car, SUV for winter"></div>
+    <div class="full"><label>Vehicle preferences</label><input name="vehicle_preferences" value="${esc(x.vehicle_preferences)}" placeholder="e.g. AWD, under 150,000 km, Honda/Toyota"></div>
+    <div><label>Budget min ($)</label><input name="budget_min" type="number" min="0" step="100" value="${esc(x.budget_min)}"></div>
+    <div><label>Budget max ($)</label><input name="budget_max" type="number" min="0" step="100" value="${esc(x.budget_max)}"></div>
+    <div><label>Budget notes (as they said it)</label><input name="budget_text" value="${esc(x.budget_text)}" placeholder="e.g. “around 12k”, “not sure”"></div>
+    <div><label>Buying timeline</label><input name="timeline" value="${esc(x.timeline)}" placeholder="e.g. this week, before winter, unknown"></div>
+
+    <div class="sec full">Score (0–100) — leave a factor at 0 when the information is missing</div>
+    <div class="full scoregrid">${FACTORS.map(([k,lab,max])=>`<div><label>${lab} /${max}</label><input type="number" min="0" max="${max}" name="f_${k}" value="${esc(b[k]??"")}"></div>`).join("")}</div>
+    <div class="full muted small" id="scoreOut"></div>
+    <div class="full"><label>Why this score</label><textarea name="score_explanation" placeholder="Explain each factor. Don't assume anything they didn't say.">${esc(x.score_explanation)}</textarea></div>
+    <div class="full"><label>Why this is a potential lead</label><textarea name="why_lead">${esc(x.why_lead)}</textarea></div>
+    <div class="full"><label>Suggested next action</label><input name="suggested_next_action" value="${esc(x.suggested_next_action)}"></div>
+
+    <div class="sec full">Pipeline</div>
+    <div><label>Status</label><select name="status">${opts(STAGES,x.status)}</select></div>
+    <div><label>Assigned salesperson</label><select name="assigned_to">${opts(S.staff.map(s=>[s.id,s.full_name||s.email]),x.assigned_to,"Unassigned")}</select></div>
+    <div><label>Next follow-up</label><input type="date" name="next_follow_up" value="${esc(x.next_follow_up)}"></div>
+    <div><label>Appointment</label><input type="datetime-local" name="appointment_at" value="${x.appointment_at?esc(toLocalInput(x.appointment_at)):""}"></div>
+    <div id="soldWrap" class="full form" style="padding:0"><div><label>Vehicle sold</label><select name="sold_vehicle_id">${opts(S.vehicles.map(v=>[v.id,vehTitle(v)]),x.sold_vehicle_id,"—")}</select></div><div><label>Sale amount ($)</label><input type="number" min="0" name="sale_amount" value="${esc(x.sale_amount)}"></div></div>
+    <div id="lostWrap" class="full"><label>Reason lost</label><input name="lost_reason" value="${esc(x.lost_reason)}"></div>
+  </form>
+  <div class="actions">
+    <button class="btn" id="saveLead">${l?"Save changes":"Add lead"}</button>
+    ${l?`<button class="btn ghost" id="markSold">Mark sold</button><button class="btn ghost" id="markLost">Mark lost</button><span style="flex:1"></span><button class="btn danger" id="delLead">Delete</button>`:""}
+  </div>
+  <div class="msg" id="lfMsg"></div>`;
+  const f = $("#lf");
+  const sync = () => {
+    const p = f.source_platform.value;
+    $("#urlReq").textContent = URL_REQUIRED.has(p) ? "(required for this source)" : "(optional)";
+    $("#soldWrap").style.display = f.status.value==="sold" ? "" : "none";
+    $("#lostWrap").style.display = f.status.value==="lost" ? "" : "none";
+    let tot=0, any=false; FACTORS.forEach(([k,,max])=>{ const v=f["f_"+k].value; if(v!==""){any=true; tot+=Math.min(max,Math.max(0,Number(v)));} });
+    $("#scoreOut").innerHTML = any ? `Total: <b>${tot}</b> → ${tierBadge({score:tot,tier:tot>=80?"hot":tot>=60?"warm":tot>=40?"potential":"low"})}` : "Not scored yet.";
+  };
+  f.oninput = sync; sync();
+  if (l){
+    $("#markSold").onclick = () => { f.status.value="sold"; sync(); f.sold_vehicle_id.focus(); };
+    $("#markLost").onclick = () => { f.status.value="lost"; sync(); f.lost_reason.focus(); };
+    $("#delLead").onclick = async () => {
+      if (!confirm(`Delete ${leadName(l)} and all their notes, messages and consent records? This can't be undone.`)) return;
+      try { await q(sb.from("leads").delete().eq("id",l.id)); await log("lead_deleted","lead",null,{name:leadName(l)}); toast("Lead deleted."); d.close(); refresh(); }
+      catch(e){ toast(friendlyErr(e),true); }
+    };
+  }
+  $("#saveLead").onclick = async () => {
+    const msg=$("#lfMsg"); msg.className="msg"; msg.textContent="";
+    const g = n => f[n].value;
+    const p = g("source_platform");
+    if (URL_REQUIRED.has(p) && !nul(g("source_url"))) return msg.className="msg err", msg.textContent="Add the URL of the original public post — every discovered lead needs a traceable source.";
+    if (!URL_REQUIRED.has(p) && !nul(g("source_url")) && !nul(g("source_excerpt")) && !nul(g("display_name")) && !nul(g("contact_email")) && !nul(g("contact_phone"))) return msg.className="msg err", msg.textContent="Describe where this lead came from (what they wrote or how they contacted you).";
+    let any=false, tot=0, br={};
+    FACTORS.forEach(([k,,max])=>{ const v=g("f_"+k); if(v!==""){ any=true; br[k]=Math.min(max,Math.max(0,Number(v))); tot+=br[k]; } });
+    const row = {
+      source_platform:p, discovered_at:new Date(g("discovered_at")+"T12:00:00").toISOString(), source_url:nul(g("source_url")), source_excerpt:nul(g("source_excerpt")),
+      display_name:nul(g("display_name")), contact_handle:nul(g("contact_handle")), contact_email:nul(g("contact_email"))?.toLowerCase()??null, contact_phone:nul(g("contact_phone")),
+      location:nul(g("location")), contact_permission:g("contact_permission"), looking_for:nul(g("looking_for")), vehicle_preferences:nul(g("vehicle_preferences")),
+      budget_min:num(g("budget_min")), budget_max:num(g("budget_max")), budget_text:nul(g("budget_text")), timeline:nul(g("timeline")),
+      score: any?tot:null, score_breakdown: any?br:null, score_explanation:nul(g("score_explanation")), why_lead:nul(g("why_lead")), suggested_next_action:nul(g("suggested_next_action")),
+      status:g("status"), assigned_to:nul(g("assigned_to")), next_follow_up:nul(g("next_follow_up")),
+      appointment_at: nul(g("appointment_at")) ? new Date(g("appointment_at")).toISOString() : null,
+      sold_vehicle_id: g("status")==="sold" ? nul(g("sold_vehicle_id")) : null, sale_amount: g("status")==="sold" ? num(g("sale_amount")) : null,
+      lost_reason: g("status")==="lost" ? nul(g("lost_reason")) : null
+    };
+    if (row.budget_min!=null && row.budget_max!=null && row.budget_min>row.budget_max) return msg.className="msg err", msg.textContent="Budget min is higher than budget max.";
+    const btn=$("#saveLead"); btn.disabled=true;
+    try {
+      if (l){
+        const saved = await q(sb.from("leads").update(row).eq("id",l.id).select().single());
+        await log("lead_updated","lead",l.id,{name:leadName(saved)});
+        if (l.status!==saved.status) await log("status_changed","lead",l.id,{name:leadName(saved),from:l.status,to:saved.status});
+        Object.assign(l, saved); markDirty(); toast("Saved."); leadDetails(d,l,markDirty);
+      } else {
+        row.created_by = S.user.id;
+        const saved = await q(sb.from("leads").insert(row).select().single());
+        await log("lead_created","lead",saved.id,{name:leadName(saved), source:saved.source_platform});
+        toast("Lead added."); d.close(); await refresh(); openLead(saved.id);
+      }
+    } catch(e){ msg.className="msg err"; msg.textContent=friendlyErr(e); }
+    btn.disabled=false;
+  };
+}
+function toLocalInput(iso){ const t=new Date(iso); t.setMinutes(t.getMinutes()-t.getTimezoneOffset()); return t.toISOString().slice(0,16); }
+
+async function leadNotes(d, l, markDirty){
+  d.body.innerHTML = `<div class="muted">Loading…</div>`;
+  const notes = await q(sb.from("lead_notes").select("*").eq("lead_id",l.id).order("created_at",{ascending:false}));
+  d.body.innerHTML = `
+    <label for="nBody">Add a note</label><textarea id="nBody" placeholder="Called — wants to see the CR-V Saturday…"></textarea>
+    <div class="actions" style="margin-top:8px"><button class="btn" id="nAdd">Add note</button></div>
+    <div style="margin-top:18px">${notes.length?notes.map(n=>`<div class="msgitem"><header><span>${esc(staffName(n.author_id)||"Staff")}</span><span>${fmtDT(n.created_at)}</span></header><div class="pre">${esc(n.body)}</div></div>`).join(""):`<div class="empty">No notes yet.</div>`}</div>`;
+  $("#nAdd").onclick = async () => {
+    const body = $("#nBody").value.trim(); if (!body) return;
+    try { await q(sb.from("lead_notes").insert({lead_id:l.id, author_id:S.user.id, body})); await log("note_added","lead",l.id,{name:leadName(l)}); markDirty(); leadNotes(d,l,markDirty); }
+    catch(e){ toast(friendlyErr(e),true); }
+  };
+}
+
+async function leadConvo(d, l, markDirty){
+  d.body.innerHTML = `<div class="muted">Loading…</div>`;
+  const msgs = await q(sb.from("messages").select("*").eq("lead_id",l.id).order("created_at",{ascending:true}));
+  const S_ = {logged:"Logged",draft:"Draft — needs approval",approved:"Approved — send it yourself, then mark sent",rejected:"Rejected",sent:"Sent"};
+  d.body.innerHTML = `
+    <div class="notice" style="margin-bottom:14px">Nothing is ever sent automatically. Drafts need a staff member's approval, and approval is blocked unless this lead has a recorded consent or legal basis for that channel (CASL). After approving, send it yourself from Instagram, Gmail, etc., then click “Mark sent”.</div>
+    ${msgs.length?msgs.map(m=>`<div class="msgitem ${m.direction==="inbound"?"in":"out"}">
+      <header><span>${m.direction==="inbound"?"⬅ From lead":"➡ To lead"} · ${esc(CH_LABEL[m.channel]||m.channel)}${m.ai_generated?" · AI draft":""}</span><span>${fmtDT(m.created_at)}</span></header>
+      ${m.subject?`<b>${esc(m.subject)}</b>`:""}<div class="pre">${esc(m.body)}</div>
+      ${m.direction==="outbound"?`<div class="small muted" style="margin-top:6px">${esc(S_[m.state]||m.state)}${m.approved_by?` · approved by ${esc(staffName(m.approved_by))}`:""}${m.sent_at?` · sent ${fmtDT(m.sent_at)}`:""}</div>
+        <div class="actions" style="margin-top:6px">${m.state==="draft"?`<button class="btn sm ok" data-approve="${m.id}">Approve</button><button class="btn sm ghost" data-reject="${m.id}">Reject</button>`:""}${m.state==="approved"?`<button class="btn sm" data-sent="${m.id}">Mark sent</button><button class="btn sm ghost" data-copy="${m.id}">Copy text</button>`:""}</div>`:""}
+    </div>`).join(""):`<div class="empty">No messages yet.</div>`}
+    <div class="sec">Add to conversation</div>
+    <form id="mf" class="form">
+      <div><label>Direction</label><select name="direction"><option value="inbound">They wrote to us (log it)</option><option value="outbound">Draft a message to them</option></select></div>
+      <div><label>Channel</label><select name="channel">${opts(CHANNELS,"email")}</select></div>
+      <div class="full"><label>Subject (email only)</label><input name="subject"></div>
+      <div class="full"><label>Message</label><textarea name="body" required></textarea></div>
+      <div class="full" id="chk"></div>
+    </form>
+    <div class="actions"><button class="btn" id="mAdd">Save</button></div>`;
+  const f=$("#mf");
+  const check = async () => {
+    if (f.direction.value!=="outbound") return $("#chk").innerHTML="";
+    const r = await sb.rpc("contact_check",{p_lead:l.id,p_channel:f.channel.value});
+    const ok = r.data?.[0]?.allowed, why = r.data?.[0]?.reason || r.error?.message;
+    $("#chk").innerHTML = `<div class="notice ${ok?"good":"warn"}">${ok?"✓ Can be approved for this channel: ":"⚠ Can be drafted, but not approved: "}${esc(why)}</div>`;
+  };
+  f.direction.onchange = check; f.channel.onchange = check;
+  $("#mAdd").onclick = async () => {
+    const body=f.body.value.trim(); if(!body) return toast("Write the message first.",true);
+    const out = f.direction.value==="outbound";
+    try {
+      await q(sb.from("messages").insert({lead_id:l.id, direction:f.direction.value, channel:f.channel.value, subject:nul(f.subject.value), body, state: out?"draft":"logged", created_by:S.user.id}));
+      await log("message_logged","lead",l.id,{name:leadName(l),direction:f.direction.value});
+      markDirty(); leadConvo(d,l,markDirty);
+    } catch(e){ toast(friendlyErr(e),true); }
+  };
+  const upd = async (id, state, action) => {
+    try { await q(sb.from("messages").update({state}).eq("id",id)); if(action) await log(action,"lead",l.id,{name:leadName(l)});
+      if (state==="sent" && ["new","researching","qualified"].includes(l.status)) { await q(sb.from("leads").update({status:"contacted"}).eq("id",l.id)); l.status="contacted"; await log("status_changed","lead",l.id,{name:leadName(l),to:"contacted"}); }
+      markDirty(); leadConvo(d,l,markDirty); }
+    catch(e){ toast(friendlyErr(e),true); }
+  };
+  $$("[data-approve]",d.body).forEach(b=>b.onclick=()=>upd(b.dataset.approve,"approved","message_approved"));
+  $$("[data-reject]",d.body).forEach(b=>b.onclick=()=>upd(b.dataset.reject,"rejected"));
+  $$("[data-sent]",d.body).forEach(b=>b.onclick=()=>upd(b.dataset.sent,"sent","message_sent"));
+  $$("[data-copy]",d.body).forEach(b=>b.onclick=async()=>{ const m=msgs.find(x=>x.id===b.dataset.copy); try{ await navigator.clipboard.writeText(m.body); toast("Copied."); }catch{ toast("Couldn't copy — select the text instead.",true);} });
+}
+
+async function leadConsent(d, l, markDirty){
+  d.body.innerHTML = `<div class="muted">Loading…</div>`;
+  const recs = await q(sb.from("consent_records").select("*").eq("lead_id",l.id).order("obtained_at",{ascending:false}));
+  const st = S.settings;
+  d.body.innerHTML = `
+    <div class="notice" style="margin-bottom:14px">Under CASL, a public post or a visible email/handle is <b>not</b> consent. Record how you got permission (or the legal basis) before sending private messages. Every commercial message must identify ${esc(st?.business_name||"the business")} and offer a way to unsubscribe.</div>
+    ${recs.length?recs.map(r=>{ const exp = r.expires_at && new Date(r.expires_at)<new Date(); return `<div class="msgitem ${r.consent_type==="withdrawn"?"out":"in"}"><header><span><b>${esc(CONSENT_LABEL[r.consent_type])}</b> · ${esc(r.channel||"any channel")}</span><span>${fmtDate(r.obtained_at)}</span></header><div class="pre">${esc(r.basis)}</div>${r.evidence?`<div class="small muted">Evidence: ${esc(r.evidence)}</div>`:""}${r.expires_at?`<div class="small ${exp?"":"muted"}" style="${exp?"color:#ff8b97":""}">${exp?"Expired":"Expires"} ${fmtDate(r.expires_at)}</div>`:""}${r.recorded_by?`<div class="small muted">Recorded by ${esc(staffName(r.recorded_by))}</div>`:""}</div>`; }).join(""):`<div class="empty">No consent recorded. Private messages to this lead can't be approved yet.</div>`}
+    <div class="sec">Record consent or legal basis</div>
+    <form id="cf" class="form">
+      <div><label>Type</label><select name="consent_type">${opts(CONSENT_TYPES,"express")}</select></div>
+      <div><label>Channel</label><select name="channel">${opts([["any","Any channel"],["email","Email"],["sms","SMS"],["instagram","Instagram"],["facebook","Facebook"]],"any")}</select></div>
+      <div class="full"><label>How it was obtained (plain language)</label><textarea name="basis" required placeholder="e.g. Customer asked us by Instagram DM on Nov 2 to send them SUVs under $15k."></textarea></div>
+      <div class="full"><label>Evidence (link, screenshot name, message reference)</label><input name="evidence"></div>
+    </form>
+    <div class="actions"><button class="btn" id="cAdd">Record</button><button class="btn danger" id="cStop">They said STOP / unsubscribe</button></div>`;
+  const f=$("#cf");
+  const add = async (type, basis, channel, evidence) => {
+    const exp = type==="implied_inquiry" ? 183 : type==="implied_business_relationship" ? 730 : null;
+    try {
+      await q(sb.from("consent_records").insert({lead_id:l.id, consent_type:type, channel, basis, evidence:nul(evidence), recorded_by:S.user.id, expires_at: exp? new Date(Date.now()+exp*864e5).toISOString():null}));
+      const perm = type==="withdrawn" ? "unsubscribed" : type==="express" ? "express" : (["none","public_reply_only"].includes(l.contact_permission)?"implied":l.contact_permission);
+      if (type!=="withdrawn" && perm!==l.contact_permission && l.contact_permission!=="unsubscribed"){ await q(sb.from("leads").update({contact_permission:perm}).eq("id",l.id)); }
+      l.contact_permission = l.contact_permission==="unsubscribed" && type!=="withdrawn" ? "unsubscribed" : perm;
+      await log("consent_recorded","lead",l.id,{name:leadName(l),type});
+      markDirty(); toast(type==="withdrawn"?"Unsubscribed — added to do-not-contact list.":"Recorded."); leadConsent(d,l,markDirty);
+    } catch(e){ toast(friendlyErr(e),true); }
+  };
+  $("#cAdd").onclick = () => { const b=f.basis.value.trim(); if(!b) return toast("Describe how consent was obtained.",true); add(f.consent_type.value,b,f.channel.value,f.evidence.value); };
+  $("#cStop").onclick = () => { if(confirm("Mark this person as unsubscribed? They'll be added to the do-not-contact list.")) add("withdrawn","Person asked to stop receiving messages.","any",f.evidence.value); };
+}
+
+/* ---------- pipeline ---------- */
+function renderPipeline(){
+  const V=$("#view");
+  V.innerHTML = `<div class="top"><h2>Pipeline</h2><div class="muted small">Drag a card to move it. Tap a card to open it.</div></div>
+  <div class="kanban">${STAGES.map(([s,lab])=>{ const ls=S.leads.filter(l=>l.status===s); return `<div class="col" data-stage="${s}"><h4>${lab}<span>${ls.length}</span></h4>${ls.map(l=>`<div class="lcard" draggable="true" data-id="${l.id}"><b>${esc(leadName(l))}</b><div class="muted">${esc(l.looking_for||SOURCE_LABEL[l.source_platform])}</div><div style="margin-top:6px">${tierBadge(l)}</div></div>`).join("")}</div>`; }).join("")}</div>`;
+  let dragId=null;
+  $$(".lcard",V).forEach(c=>{ c.ondragstart=e=>{dragId=c.dataset.id; e.dataTransfer.setData("text/plain",dragId);}; c.onclick=()=>openLead(c.dataset.id); });
+  $$(".col",V).forEach(col=>{
+    col.ondragover=e=>{e.preventDefault(); col.classList.add("drop");};
+    col.ondragleave=()=>col.classList.remove("drop");
+    col.ondrop=async e=>{ e.preventDefault(); col.classList.remove("drop");
+      const id=e.dataTransfer.getData("text/plain")||dragId, to=col.dataset.stage, l=S.leads.find(x=>x.id===id);
+      if(!l||l.status===to) return;
+      if (to==="sold"||to==="lost"){ openLead(id); return toast(`Open the lead to record ${to==="sold"?"the vehicle sold":"why it was lost"}.`); }
+      try { await q(sb.from("leads").update({status:to}).eq("id",id)); await log("status_changed","lead",id,{name:leadName(l),from:l.status,to}); l.status=to; renderPipeline(); }
+      catch(err){ toast(friendlyErr(err),true); } };
+  });
+}
+
+/* ---------- inventory ---------- */
+function renderInventory(){
+  const V=$("#view");
+  V.innerHTML = `<div class="top"><h2>Inventory</h2><button class="btn" id="addVeh">+ Add vehicle</button></div>
+  ${S.vehicles.length?`<div class="grid inv">${S.vehicles.map(v=>`<div class="vcard" data-id="${v.id}"><div class="ph" style="${v.photos?.[0]?`background-image:url('${esc(v.photos[0])}')`:""}">${v.photos?.[0]?"":"No photo"}</div><div class="bd"><div style="display:flex;justify-content:space-between;gap:8px"><h4>${esc(vehTitle(v))}</h4><span class="badge st-${v.status}">${esc(v.status)}</span></div><div class="price">${v.price!=null?money(v.price):'<span class="muted small">No price set</span>'}</div><div class="muted small">${[km(v.km),v.transmission,v.drivetrain,v.fuel_type].filter(Boolean).map(esc).join(" · ")}</div></div></div>`).join("")}</div>`:`<div class="panel empty">No vehicles yet. Add your first car.</div>`}`;
+  $("#addVeh").onclick=()=>openVehicle(null);
+  $$(".vcard",V).forEach(c=>c.onclick=()=>openVehicle(c.dataset.id));
+}
+function openVehicle(id){
+  const v = id ? S.vehicles.find(x=>x.id===id) : null;
+  const x = v || {status:"available", features:[], photos:[], condition:"Used"};
+  let photos = [...(x.photos||[])], dirty=false;
+  const d = openDrawer(v?esc(vehTitle(v)):"Add vehicle", null, ()=>{ if(dirty) refresh(); });
+  const sel = (n,list) => `<select name="${n}">${opts(list.map(a=>[a,a]),x[n],"—")}</select>`;
+  d.body.innerHTML = `
+  <form id="vf" class="form">
+    <div><label>Year</label><input name="year" type="number" min="1950" max="2100" value="${esc(x.year)}"></div>
+    <div><label>Make *</label><input name="make" required value="${esc(x.make)}"></div>
+    <div><label>Model *</label><input name="model" required value="${esc(x.model)}"></div>
+    <div><label>Trim</label><input name="trim" value="${esc(x.trim)}"></div>
+    <div><label>Body type</label>${sel("body_type",["Sedan","SUV","Hatchback","Coupe","Truck","Minivan","Wagon","Convertible","Van"])}</div>
+    <div><label>Price ($)</label><input name="price" type="number" min="0" step="1" value="${esc(x.price)}"></div>
+    <div><label>Mileage (km)</label><input name="km" type="number" min="0" value="${esc(x.km)}"></div>
+    <div><label>Transmission</label>${sel("transmission",["Automatic","Manual","CVT"])}</div>
+    <div><label>Fuel type</label>${sel("fuel_type",["Gasoline","Diesel","Hybrid","Plug-in hybrid","Electric"])}</div>
+    <div><label>Drivetrain</label>${sel("drivetrain",["FWD","RWD","AWD","4WD"])}</div>
+    <div><label>Exterior colour</label><input name="exterior_colour" value="${esc(x.exterior_colour)}"></div>
+    <div><label>Interior</label><input name="interior" value="${esc(x.interior)}"></div>
+    <div><label>VIN</label><input name="vin" value="${esc(x.vin)}" maxlength="17"></div>
+    <div><label>Condition</label><input name="condition" value="${esc(x.condition)}" placeholder="e.g. Used — excellent"></div>
+    <div><label>Availability</label><select name="status">${opts([["available","Available"],["pending","Sale pending"],["sold","Sold"],["hidden","Hidden (not on website)"]],x.status)}</select></div>
+    <div><label>Listing URL</label><input name="listing_url" type="url" value="${esc(x.listing_url)}"></div>
+    <div class="full"><label>CARFAX URL</label><input name="carfax_url" type="url" value="${esc(x.carfax_url)}"></div>
+    <div class="full"><label>Features (one per line)</label><textarea name="features">${esc((x.features||[]).join("\n"))}</textarea></div>
+    <div class="full"><label>Description</label><textarea name="description">${esc(x.description)}</textarea></div>
+    <div class="full"><label>Photos</label><div class="thumbs" id="thumbs"></div>
+      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><input type="file" id="vUp" accept="image/*" multiple style="max-width:280px"><input id="vUrl" placeholder="…or paste a photo URL" style="flex:1;min-width:180px"><button type="button" class="btn ghost sm" id="vUrlAdd">Add URL</button></div>
+      <div class="muted small" id="upMsg"></div></div>
+  </form>
+  <div class="actions"><button class="btn" id="saveVeh">${v?"Save changes":"Add vehicle"}</button>${v?`<span style="flex:1"></span><button class="btn danger" id="delVeh">Delete</button>`:""}</div>
+  <div class="msg" id="vfMsg"></div>`;
+  const drawThumbs = () => { $("#thumbs").innerHTML = photos.length ? photos.map((p,i)=>`<div><img src="${esc(p)}" alt=""><button type="button" data-rm="${i}" aria-label="Remove">×</button></div>`).join("") : `<span class="muted small">No photos yet.</span>`; $$("[data-rm]").forEach(b=>b.onclick=()=>{photos.splice(+b.dataset.rm,1); drawThumbs();}); };
+  drawThumbs();
+  $("#vUrlAdd").onclick = () => { const u=$("#vUrl").value.trim(); if(!/^https?:\/\//.test(u)) return toast("Enter a full https:// URL.",true); photos.push(u); $("#vUrl").value=""; drawThumbs(); };
+  $("#vUp").onchange = async e => {
+    const files=[...e.target.files]; if(!files.length) return;
+    $("#upMsg").textContent=`Uploading ${files.length} photo(s)…`;
+    for (const file of files){
+      if (file.size > 8*1024*1024){ toast(`${file.name} is over 8 MB — skipped.`,true); continue; }
+      const path = `${Date.now()}-${Math.random().toString(36).slice(2,8)}-${file.name.replace(/[^a-z0-9.\-]/gi,"_")}`;
+      const { error } = await sb.storage.from("vehicle-photos").upload(path, file, {contentType:file.type, upsert:false});
+      if (error){ toast("Upload failed: "+error.message,true); continue; }
+      photos.push(sb.storage.from("vehicle-photos").getPublicUrl(path).data.publicUrl); drawThumbs();
+    }
+    $("#upMsg").textContent=""; e.target.value="";
+  };
+  if (v) $("#delVeh").onclick = async () => {
+    if (!confirm(`Delete the ${vehTitle(v)}? If it sold, consider marking it Sold instead so sales history stays accurate.`)) return;
+    try { await q(sb.from("vehicles").delete().eq("id",v.id)); await log("vehicle_deleted","vehicle",null,{title:vehTitle(v)}); toast("Vehicle deleted."); dirty=true; d.close(); }
+    catch(e){ toast(friendlyErr(e),true); }
+  };
+  $("#saveVeh").onclick = async () => {
+    const f=$("#vf"), g=n=>f[n].value, msg=$("#vfMsg");
+    if (!nul(g("make"))||!nul(g("model"))) return msg.className="msg err", msg.textContent="Make and model are required.";
+    const row = { year:num(g("year")), make:g("make").trim(), model:g("model").trim(), trim:nul(g("trim")), body_type:nul(g("body_type")), price:num(g("price")), km:num(g("km")),
+      transmission:nul(g("transmission")), fuel_type:nul(g("fuel_type")), drivetrain:nul(g("drivetrain")), exterior_colour:nul(g("exterior_colour")), interior:nul(g("interior")),
+      vin:nul(g("vin"))?.toUpperCase()??null, condition:nul(g("condition")), status:g("status"), listing_url:nul(g("listing_url")), carfax_url:nul(g("carfax_url")),
+      features:g("features").split("\n").map(s=>s.trim()).filter(Boolean), description:nul(g("description")), photos };
+    const btn=$("#saveVeh"); btn.disabled=true;
+    try {
+      if (v){ const s=await q(sb.from("vehicles").update(row).eq("id",v.id).select().single()); Object.assign(v,s); await log("vehicle_updated","vehicle",v.id,{title:vehTitle(s)}); toast("Saved."); }
+      else { const s=await q(sb.from("vehicles").insert(row).select().single()); await log("vehicle_created","vehicle",s.id,{title:vehTitle(s)}); toast("Vehicle added."); }
+      dirty=true; d.close();
+    } catch(e){ msg.className="msg err"; msg.textContent=friendlyErr(e); }
+    btn.disabled=false;
+  };
+}
+
+/* ---------- AI assistant (Phase 3+) ---------- */
+function renderAssistant(){
+  const items = [
+    ["Find New Leads","Search permitted public sources for people asking about used cars near Hamilton.","Phase 4"],
+    ["Research a Lead","Paste a public post; the AI pulls out what they want, budget and timeline, and keeps the source link.","Phase 4"],
+    ["Qualify Leads","Score leads 0–100 with a written reason for each factor. Missing info scores 0, never guessed.","Phase 3"],
+    ["Match Leads to Inventory","Compare each lead's needs with your available cars and explain the fit.","Phase 3"],
+    ["Generate Outreach","Write natural replies for Instagram, Facebook, email, SMS or the website — saved as drafts for approval.","Phase 5"],
+    ["Generate Weekly Sales Report","Leads found, best sources, most-requested vehicles, common budgets and what to do next.","Phase 6"]];
+  $("#view").innerHTML = `<div class="top"><h2>AI Assistant</h2></div>
+  <div class="notice warn" style="margin-bottom:14px">The AI features aren't switched on yet. They need a Claude API key stored securely on the server (never in this page). They'll be added in the phases shown below, and each button will only report work it actually did.</div>
+  <div class="grid aibtns">${items.map(([t,dsc,ph])=>`<div class="aibtn"><h4>${t}</h4><p class="muted small" style="margin:0 0 12px">${dsc}</p><button class="btn sm" disabled>Coming in ${ph}</button></div>`).join("")}</div>`;
+}
+
+/* ---------- settings ---------- */
+async function renderSettings(){
+  const owner = S.me.role==="owner", st=S.settings||{};
+  const V=$("#view");
+  V.innerHTML = `<div class="top"><h2>Settings</h2></div><div class="muted">Loading…</div>`;
+  let invites=[], supp=[];
+  try { [invites, supp] = await Promise.all([ owner ? q(sb.from("staff_invites").select("*").order("created_at")) : [], q(sb.from("suppression_list").select("*").order("created_at",{ascending:false})) ]); }
+  catch(e){ toast(friendlyErr(e),true); }
+  V.innerHTML = `<div class="top"><h2>Settings</h2></div>
+  <div class="grid two">
+    <div class="panel"><h3>Dealership details (shown in outreach for CASL sender ID)</h3>
+      <form id="sf" class="form">
+        <div class="full"><label>Business name</label><input name="business_name" value="${esc(st.business_name)}" ${owner?"":"disabled"}></div>
+        <div class="full"><label>Mailing address</label><input name="address" value="${esc(st.address)}" ${owner?"":"disabled"}></div>
+        <div><label>Phone</label><input name="phone" value="${esc(st.phone)}" ${owner?"":"disabled"}></div>
+        <div><label>Email</label><input name="email" value="${esc(st.email)}" ${owner?"":"disabled"}></div>
+        <div class="full"><label>Website</label><input name="website" value="${esc(st.website)}" ${owner?"":"disabled"}></div>
+        <div class="full"><label>Unsubscribe line (added to marketing messages)</label><textarea name="unsubscribe_text" ${owner?"":"disabled"}>${esc(st.unsubscribe_text)}</textarea></div>
+      </form>
+      ${owner?`<div class="actions"><button class="btn" id="saveSet">Save</button></div>`:`<p class="muted small">Only the owner can change these.</p>`}
+    </div>
+    <div class="panel"><h3>Staff</h3>
+      <ul class="list">${S.staff.map(s=>`<li style="display:flex;justify-content:space-between;gap:8px;align-items:center"><span>${esc(s.full_name||s.email)}<div class="muted small">${esc(s.email)} · ${esc(s.role)}${s.active?"":" · deactivated"}</div></span>${owner&&s.id!==S.me.id?`<button class="btn sm ghost" data-toggle="${s.id}">${s.active?"Deactivate":"Reactivate"}</button>`:""}</li>`).join("")}</ul>
+      ${owner?`<div class="sec">Invite a salesperson</div>
+      <div class="form"><div><label>Email</label><input id="invEmail" type="email"></div><div><label>Name</label><input id="invName"></div>
+      <div><label>Role</label><select id="invRole"><option value="sales">Sales</option><option value="owner">Owner</option></select></div><div style="align-self:end"><button class="btn" id="invAdd">Invite</button></div></div>
+      ${invites.filter(i=>!S.staff.some(s=>s.email===i.email)).length?`<p class="muted small" style="margin-top:12px">Waiting to create an account: ${invites.filter(i=>!S.staff.some(s=>s.email===i.email)).map(i=>esc(i.email)).join(", ")}</p>`:""}
+      <p class="muted small">They then open this page, click “First time? Create account”, and use the same email.</p>`:""}
+    </div>
+  </div>
+  <div class="panel" style="margin-top:14px"><h3>Do-not-contact list (${supp.length})</h3>
+    <p class="muted small" style="margin-top:-6px">Anyone here can't be approved for outreach. People are added automatically when you record STOP on a lead.</p>
+    <div class="form" style="margin-bottom:12px"><div><label>Type</label><select id="spType"><option value="email">Email</option><option value="phone">Phone</option><option value="handle">Social handle</option></select></div><div><label>Value</label><input id="spVal"></div><div class="full"><button class="btn ghost sm" id="spAdd">Add to list</button></div></div>
+    ${supp.length?`<div class="tablewrap"><table><thead><tr><th>Type</th><th>Value</th><th>Reason</th><th>Added</th></tr></thead><tbody>${supp.map(s=>`<tr style="cursor:default"><td>${esc(s.identifier_type)}</td><td>${esc(s.identifier)}</td><td>${esc(s.reason)}</td><td>${fmtDate(s.created_at)}</td></tr>`).join("")}</tbody></table></div>`:""}
+  </div>`;
+  if (owner){
+    $("#saveSet").onclick = async () => { const f=$("#sf"); try { await q(sb.from("settings").update({business_name:f.business_name.value.trim(),address:f.address.value.trim(),phone:nul(f.phone.value),email:nul(f.email.value),website:nul(f.website.value),unsubscribe_text:f.unsubscribe_text.value.trim(),updated_at:new Date().toISOString()}).eq("id",1)); toast("Saved."); await loadAll(); } catch(e){ toast(friendlyErr(e),true); } };
+    $("#invAdd").onclick = async () => { const email=$("#invEmail").value.trim().toLowerCase(); if(!/^\S+@\S+\.\S+$/.test(email)) return toast("Enter a valid email.",true);
+      try { await q(sb.from("staff_invites").upsert({email, full_name:nul($("#invName").value), role:$("#invRole").value})); await log("staff_invited","staff",null,{email}); toast("Invited."); renderSettings(); } catch(e){ toast(friendlyErr(e),true); } };
+    $$("[data-toggle]").forEach(b=>b.onclick=async()=>{ const s=S.staff.find(x=>x.id===b.dataset.toggle); try{ await q(sb.from("staff").update({active:!s.active}).eq("id",s.id)); s.active=!s.active; renderSettings(); }catch(e){ toast(friendlyErr(e),true);} });
+  }
+  $("#spAdd").onclick = async () => { const t=$("#spType").value; let v=$("#spVal").value.trim(); if(!v) return; v = t==="phone" ? v.replace(/\D/g,"") : v.toLowerCase();
+    try { await q(sb.from("suppression_list").insert({identifier:v, identifier_type:t, reason:"Added manually"})); toast("Added."); renderSettings(); } catch(e){ toast(/duplicate|unique/.test(e.message)?"Already on the list.":friendlyErr(e),true); } };
+}
+
+boot().catch(e => { document.body.insertAdjacentHTML("afterbegin", `<div class="toast err">Couldn't start: ${esc(e.message)}</div>`); });
+</script>
+</body>
+</html>
