@@ -402,6 +402,7 @@ function activityText(a){
     ai_qualified: `AI scored ${d.name||"a lead"}: ${d.score}/100${d.matches?`, ${d.matches} car match${d.matches>1?"es":""}`:""}`,
     ai_matched: `AI matched ${d.name||"a lead"} to inventory (${d.matches} match${d.matches===1?"":"es"})`,
     ai_researched_post: `AI researched a ${SOURCE_LABEL[d.platform]||""} post`,
+    lead_scored: `Scored ${d.name||"a lead"}: ${d.score}/100${d.matches?`, ${d.matches} car match${d.matches>1?"es":""}`:""}`,
     ai_lead_search: `AI web search: ${d.searches} search${d.searches===1?"":"es"}, ${d.found} new lead${d.found===1?"":"s"}`
   };
   return map[a.action] || a.action.replace(/_/g," ");
@@ -499,7 +500,7 @@ function leadDetails(d, l, markDirty){
   const x = l || {source_platform:"walk_in", status:"new", contact_permission:"none"};
   const b = x.score_breakdown || {};
   d.body.innerHTML = `
-  ${l?`<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px">${tierBadge(l)} ${stageBadge(l.status)} <span class="badge s-badge">${esc(PERM_LABEL[l.contact_permission])}</span>${l.source_url?`<a class="small" href="${esc(l.source_url)}" target="_blank" rel="noopener noreferrer">Open original ↗</a>`:""}<span style="flex:1"></span><button class="btn sm ghost" id="aiScore">✨ AI score &amp; match</button></div>
+  ${l?`<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px">${tierBadge(l)} ${stageBadge(l.status)} <span class="badge s-badge">${esc(PERM_LABEL[l.contact_permission])}</span>${l.source_url?`<a class="small" href="${esc(l.source_url)}" target="_blank" rel="noopener noreferrer">Open original ↗</a>`:""}<span style="flex:1"></span><button class="btn sm ghost" id="aiScore">✨ Score &amp; match</button></div>
   <div id="matchBox"></div>`:""}
   <form id="lf" class="form">
     <div class="sec full">Source (required — every lead must be traceable)</div>
@@ -558,8 +559,10 @@ function leadDetails(d, l, markDirty){
     drawMatches(l);
     $("#aiScore").onclick = async () => {
       const b=$("#aiScore"); b.disabled=true; b.textContent="Scoring…";
-      try { await ai("qualify",{lead_ids:[l.id]}); const fresh = await q(sb.from("leads").select("*").eq("id",l.id).single()); Object.assign(l,fresh); markDirty(); toast(`AI score: ${l.score}/100`); leadDetails(d,l,markDirty); }
-      catch(e){ toast(e.message,true); b.disabled=false; b.textContent="✨ AI score & match"; }
+      try { let ready=AI_READY; if(!ready){ try{ ready=(await ai("status")).ready; }catch{} }
+        if (ready) await ai("qualify",{lead_ids:[l.id]}); else await freeQualify([l]);
+        const fresh = await q(sb.from("leads").select("*").eq("id",l.id).single()); Object.assign(l,fresh); markDirty(); toast(`Score: ${l.score}/100`); leadDetails(d,l,markDirty); }
+      catch(e){ toast(e.message,true); b.disabled=false; b.textContent="✨ Score & match"; }
     };
     $("#markSold").onclick = () => { f.status.value="sold"; sync(); f.sold_vehicle_id.focus(); };
     $("#markLost").onclick = () => { f.status.value="lost"; sync(); f.lost_reason.focus(); };
@@ -809,6 +812,7 @@ function openVehicle(id){
 }
 
 /* ---------- AI assistant ---------- */
+let AI_READY=false;
 async function ai(action, payload={}){
   const { data, error } = await sb.functions.invoke("ai", { body:{ action, ...payload } });
   if (error){
@@ -819,6 +823,83 @@ async function ai(action, payload={}){
   if (data?.error) throw new Error(data.error);
   return data;
 }
+/* ---------- FREE rule-based scoring & matching (no API key, runs in the browser) ---------- */
+const TOWNS = [[/\b(hamilton|stoney creek|stoney|east hamilton|mountain|centennial|winona)\b/i,15,"in Hamilton / Stoney Creek"],
+  [/\b(burlington|ancaster|grimsby|dundas|waterdown|binbrook|flamborough|beamsville|glanbrook|caledonia|mount hope)\b/i,13,"close to Hamilton"],
+  [/\b(brantford|oakville|st\.? ?catharines|niagara|welland|lincoln|milton|cambridge|paris)\b/i,9,"within driving distance"],
+  [/\b(toronto|mississauga|brampton|kitchener|waterloo|guelph|london|ontario|gta)\b/i,4,"elsewhere in Ontario"]];
+const BODY = {suv:/\b(suv|crossover|cr-?v|rav ?4|pilot|rogue|escape|equinox|tucson|santa fe|cx-?5|highlander|3rd row|third row|7 ?seat)/i,
+  sedan:/\b(sedan|civic|corolla|camry|accord|elantra|mazda ?3|sentra)\b/i, truck:/\b(truck|pickup|f-?150|silverado|ram|tacoma|sierra)\b/i,
+  minivan:/\b(minivan|van|caravan|odyssey|sienna|pacifica)\b/i, hatchback:/\b(hatch|hatchback|fit|golf|yaris)\b/i};
+function parseMoney(t){ if(!t) return null; const m=[...String(t).matchAll(/\$?\s?(\d{1,3}(?:[,\s]\d{3})+|\d+(?:\.\d+)?)\s*(k|grand|thousand)?/gi)].map(x=>{let n=parseFloat(x[1].replace(/[,\s]/g,"")); if(x[2]||n<200) n*=1000; return n;}).filter(n=>n>=1000&&n<=200000); return m.length?Math.max(...m):null; }
+function leadText(l){ return [l.looking_for,l.vehicle_preferences,l.source_excerpt,l.budget_text,l.timeline,l.location].filter(Boolean).join(" \n"); }
+function ruleMatch(l, inv){
+  const t = leadText(l).toLowerCase(), budget = l.budget_max || parseMoney(l.budget_text) || (l.source_platform!=="website_form"?parseMoney(l.source_excerpt):null);
+  const wantBody = Object.entries(BODY).filter(([,re])=>re.test(t)).map(([k])=>k);
+  const wantAwd = /\b(awd|4wd|4x4|all.?wheel|winter|snow)\b/i.test(t), wantSeats = /\b(3rd row|third row|7 ?seat|8 ?seat|family of [5-9])\b/i.test(t);
+  const lowKm = /\b(low (km|kms|mileage)|under \d{2,3},?\d{0,3} ?k?m)\b/i.test(t);
+  return inv.filter(v=>["available","pending"].includes(v.status)).map(v=>{
+    let fit=30; const why=[], cons=[];
+    const vb=(v.body_type||"").toLowerCase(), name=`${v.make} ${v.model}`.toLowerCase();
+    if (t.includes(v.make.toLowerCase())||t.includes(v.model.toLowerCase())){ fit+=25; why.push(`they mentioned ${v.make}${t.includes(v.model.toLowerCase())?" "+v.model:""}`); }
+    if (wantBody.length){ if (wantBody.some(b=>vb.includes(b)||BODY[b].test(name))){ fit+=25; why.push(`it's the ${v.body_type||"type"} they want`);} else { fit-=20; cons.push(`they want a ${wantBody.join("/")}`);} }
+    if (wantAwd){ if (/awd|4wd/i.test(v.drivetrain||"")){ fit+=10; why.push("AWD for winter"); } else cons.push("not AWD"); }
+    if (wantSeats){ if (/3rd|third/i.test((v.features||[]).join(" "))||/pilot|highlander|odyssey|sienna/i.test(name)){ fit+=10; why.push("3rd-row seating"); } else cons.push("no 3rd row"); }
+    if (budget){ if (v.price==null){ cons.push(`no price set (their budget ~${money(budget)})`); }
+      else if (v.price<=budget){ fit+=15; why.push(`${money(v.price)} is within their ~${money(budget)} budget`); }
+      else if (v.price<=budget*1.1){ fit+=3; cons.push(`${money(v.price)} is slightly over their ~${money(budget)}`); }
+      else { fit-=30; cons.push(`${money(v.price)} is over their ~${money(budget)} budget`); } }
+    else cons.push("budget unknown");
+    if (lowKm && v.km>150000){ fit-=10; cons.push(`${km(v.km)} — they want low mileage`); }
+    return {vehicle_id:v.id, fit:Math.max(0,Math.min(100,fit)), reasons:why.join("; ")||"general used-vehicle interest", concerns:cons.join("; ")||null};
+  }).filter(m=>m.fit>=40).sort((a,b)=>b.fit-a.fit).slice(0,3);
+}
+function ruleScore(l, inv){
+  const t = leadText(l), lines=[], b={};
+  const direct = ["website_form","walk_in","phone","referral"].includes(l.source_platform);
+  let intent = direct ? 26 : 8;
+  if (/\b(looking for|looking to buy|need a|want to buy|buying|shopping for|recommend|suggestions?|first car|in the market|test drive|still available|is it available)\b/i.test(t)) intent += direct?4:14;
+  if (l.looking_for||l.vehicle_preferences) intent += direct?0:4;
+  b.intent=Math.min(30,intent); lines.push(`Intent ${b.intent}/30: ${direct?"contacted Car-Go directly":"public post"}${b.intent>=20?", clearly shopping":b.intent>=12?", some buying signals":", buying intent unclear"}.`);
+  const bud = l.budget_max||l.budget_min ? (l.budget_min&&l.budget_max?20:16) : (parseMoney(l.budget_text||(direct?"":l.source_excerpt))?12:(l.budget_text?5:0));
+  b.budget=bud; lines.push(`Budget ${bud}/20: ${bud>=16?"stated":bud>=12?"a number was mentioned":bud?"vague":"not stated"}.`);
+  const T = TOWNS.find(([re])=>re.test(l.location||"")) || (!l.location && TOWNS.find(([re])=>re.test(t)));
+  b.location = T?T[1]:0; lines.push(`Location ${b.location}/15: ${T?T[2]:"unknown"}.`);
+  const tl = (l.timeline||"")+" "+(direct?"":(l.source_excerpt||""));
+  b.timeline = /\b(asap|today|tomorrow|this week|right away|immediately|urgent|this weekend)\b/i.test(tl)?15 : /\b(this month|next week|couple (of )?weeks|soon|end of (the )?month)\b/i.test(tl)?12 : /\b(before winter|next month|few months|by (spring|summer|fall|december|january)|winter)\b/i.test(tl)?7 : (l.timeline?5:0);
+  lines.push(`Timeline ${b.timeline}/15: ${b.timeline>=12?"buying soon":b.timeline>=5?"within a few months":"not stated"}.`);
+  const matches = ruleMatch(l, inv);
+  b.match = matches.length ? Math.round(matches[0].fit/5) : 0;
+  lines.push(`Inventory match ${b.match}/20: ${matches.length?`best fit ${vehTitle(inv.find(v=>v.id===matches[0].vehicle_id))} (${matches[0].fit}/100)`:"nothing in stock fits yet"}.`);
+  const score = Object.values(b).reduce((a,c)=>a+c,0);
+  return {score, breakdown:b, explanation:"Free rule-based score —\n"+lines.join("\n"), matches};
+}
+async function freeQualify(leads){
+  const inv = S.vehicles; let n=0;
+  for (const l of leads){
+    const r = ruleScore(l, inv);
+    const upd = {score:r.score, score_breakdown:r.breakdown, score_explanation:r.explanation, ai_scored_at:new Date().toISOString()};
+    if (!l.suggested_next_action) upd.suggested_next_action = l.source_platform==="website_form" ? "Reply to their enquiry today." : r.matches.length ? `Reply publicly in the thread mentioning the ${vehTitle(inv.find(v=>v.id===r.matches[0].vehicle_id))} and invite them to message Car-Go.` : "Reply publicly with helpful advice and invite them to check Car-Go's inventory.";
+    if (["new","researching"].includes(l.status)) upd.status = r.score>=60?"qualified":"researching";
+    await q(sb.from("leads").update(upd).eq("id",l.id));
+    await q(sb.from("lead_matches").delete().eq("lead_id",l.id));
+    if (r.matches.length) await q(sb.from("lead_matches").insert(r.matches.map(m=>({...m, lead_id:l.id}))));
+    await log("lead_scored","lead",l.id,{name:leadName(l), score:r.score, matches:r.matches.length});
+    n++;
+  }
+  return n;
+}
+function freeExtract(text, loc){
+  const budget = parseMoney(text);
+  const bodies = Object.entries(BODY).filter(([,re])=>re.test(text)).map(([k])=>k.toUpperCase()==="SUV"?"SUV":k);
+  const T = TOWNS.find(([re])=>re.test(loc||text));
+  const tm = text.match(/\b(asap|today|tomorrow|this week(end)?|next week|this month|next month|before winter|in the spring|in a few months|soon)\b/i);
+  return { budget_max: budget, budget_text: (text.match(/(under|below|max|around|about|budget (of|is)?)\s*\$?\s?\d[\d,.]*\s*(k|grand)?|\$\s?\d[\d,.]*\s*(k)?/i)||[])[0]||null,
+    location: loc || (T ? (text.match(T[0])||[])[0] : null), looking_for: bodies.length ? bodies.join(" / ") : null,
+    vehicle_preferences: [/(awd|4wd|4x4|all.?wheel)/i.test(text)?"AWD/4WD":null, /(low (km|mileage))/i.test(text)?"Low mileage":null, /(3rd row|third row|7 ?seat)/i.test(text)?"3rd row":null, /(first car)/i.test(text)?"First car":null].filter(Boolean).join(", ")||null,
+    timeline: tm ? tm[0] : null };
+}
+
 async function renderAssistant(){
   const V=$("#view");
   V.innerHTML = `<div class="top"><h2>AI Assistant</h2><span id="aiStatus" class="badge s-badge">Checking…</span></div>
@@ -862,21 +943,36 @@ async function renderAssistant(){
     if (!/^https?:\/\//.test($("#rUrl").value.trim())) return m.className="msg err", m.textContent="Add the link to the original post.";
     if (!$("#rText").value.trim()) return m.className="msg err", m.textContent="Paste what they wrote.";
     busy(null,m,true,"Reading the post…");
+    if (!AI_READY){ try {
+        const url=$("#rUrl").value.trim(), text=$("#rText").value.trim(), user=nul($("#rUser").value), x=freeExtract(text,null);
+        const row={source_platform:$("#rPlat").value, source_url:url, source_excerpt:text, display_name:user, contact_handle:user, contact_permission:"public_reply_only", status:"new", created_by:S.user.id, discovered_at:new Date().toISOString(), ...x, why_lead:"Public post found by staff and researched in the CRM."};
+        const lead = await q(sb.from("leads").insert(row).select().single());
+        await q(sb.from("research_runs").insert({kind:"manual_paste", source:row.source_platform, query:url, status:"completed", results_count:1, finished_at:new Date().toISOString(), started_by:S.user.id, summary:"Saved 1 lead (free mode)."}));
+        await log("lead_created","lead",lead.id,{name:leadName(lead), source:lead.source_platform});
+        await freeQualify([lead]); const fresh=await q(sb.from("leads").select("*").eq("id",lead.id).single());
+        await done(m, `Saved and scored ${fresh.score}/100. Check the details — free mode only picks up budgets, towns and car types it recognises.`); $("#rUrl").value=""; $("#rText").value=""; $("#rUser").value=""; openLead(lead.id);
+      } catch(e){ await done(m, friendlyErr(e), false); } return; }
     try { const r = await ai("research_post",{platform:$("#rPlat").value, url:$("#rUrl").value.trim(), text:$("#rText").value, username:$("#rUser").value});
       if (r.duplicate){ await done(m, r.message, false); openLead(r.lead_id); return; }
       await done(m, `Saved and scored ${r.score}/100.${r.is_buyer?"":" Note: the AI thinks this person may not be a buyer."}`); $("#rUrl").value=""; $("#rText").value=""; $("#rUser").value=""; openLead(r.lead_id); }
     catch(e){ await done(m, e.message, false); } };
   $("#qGo").onclick = async () => { const m=$("#qMsg"); busy(null,m,true,"Scoring leads…");
+    if (!AI_READY){ try { const ls=S.leads.filter(l=>l.score==null&&!["sold","lost"].includes(l.status)); const n=await freeQualify(ls); await done(m, n?`Scored ${n} lead(s) with free rules.`:"No unscored open leads."); } catch(e){ await done(m, friendlyErr(e), false); } return; }
     try { const r = await ai("qualify"); const fails = (r.results||[]).filter(x=>x.error).length; await done(m, r.processed ? `Scored ${r.processed-fails} lead(s).${fails?` ${fails} failed: ${r.results.find(x=>x.error).error}`:""}` : r.message, !fails); }
     catch(e){ await done(m, e.message, false); } };
   $("#mGo").onclick = async () => { const m=$("#mMsg"); busy(null,m,true,"Matching leads to your cars…");
+    if (!AI_READY){ try { let n=0; const ls=S.leads.filter(l=>!["sold","lost"].includes(l.status));
+        for (const l of ls){ const ms=ruleMatch(l,S.vehicles); await q(sb.from("lead_matches").delete().eq("lead_id",l.id)); if(ms.length){ await q(sb.from("lead_matches").insert(ms.map(x=>({...x,lead_id:l.id})))); n+=ms.length; } }
+        await done(m, ls.length?`Checked ${ls.length} lead(s) against ${S.vehicles.filter(v=>v.status==="available").length} available car(s): ${n} match(es).`:"No open leads to match."); } catch(e){ await done(m, friendlyErr(e), false); } return; }
     try { const r = await ai("match"); const n=(r.results||[]).reduce((a,x)=>a+(x.matches||0),0); await done(m, r.processed ? `Checked ${r.processed} lead(s) against ${r.inventory_count} car(s): ${n} match(es) found.` : r.message); }
     catch(e){ await done(m, e.message, false); } };
 
   drawRuns();
-  try { const s = await ai("status"); $("#aiStatus").className = "badge " + (s.ready?"st-available":"st-pending"); $("#aiStatus").textContent = s.ready ? "AI connected" : "API key needed";
-    if (!s.ready){ $("#aiKeyNote").innerHTML = `<div class="notice warn" style="margin-bottom:14px">The Claude API key hasn't been added yet, so these buttons will return an error. Once it's added in Supabase (Edge Functions → Secrets → <b>ANTHROPIC_API_KEY</b>) they work immediately — no update needed here.</div>`; $$("[data-ai]").forEach(b=>b.disabled=true); } }
-  catch(e){ $("#aiStatus").textContent = "AI offline"; $("#aiKeyNote").innerHTML = `<div class="notice warn" style="margin-bottom:14px">Couldn't reach the AI service: ${esc(e.message)}</div>`; }
+  const freeMode = () => { AI_READY=false; $("#aiStatus").className="badge st-available"; $("#aiStatus").textContent="Free mode";
+    $("#aiKeyNote").innerHTML = `<div class="notice good" style="margin-bottom:14px"><b>Free mode is on.</b> Scoring, inventory matching and Research a Lead run on built-in rules — no API key, no cost. To find new leads on the web for free, ask Claude in your chat: <i>“find new Car-Go leads”</i> — it searches and saves real posts here. (Adding a Claude API key later upgrades these buttons to full AI automatically.)</div>`;
+    $("#fGo").disabled=true; $("#fGo").textContent="Ask Claude in chat"; };
+  try { const s = await ai("status"); if (s.ready){ AI_READY=true; $("#aiStatus").className="badge st-available"; $("#aiStatus").textContent="AI connected"; } else freeMode(); }
+  catch(e){ freeMode(); }
 }
 async function drawRuns(){
   const el=$("#runs"); if(!el) return;
