@@ -1,0 +1,50 @@
+# Keeps cars.json (the website's backup car list) in sync with the Car-Go CRM inventory.
+# The website reads cars live from the CRM; cars.json is only used if the CRM can't be reached.
+name: Sync backup car list from CRM
+on:
+  schedule:
+    - cron: "17 */3 * * *"   # every 3 hours
+  workflow_dispatch: {}       # "Run workflow" button for a manual sync
+permissions:
+  contents: write
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download inventory from CRM
+        env:
+          SB_URL: https://mjbjrqrmfpjmnaijbtso.supabase.co
+          # Public read-only key (same one the website uses); it can only see listed vehicles.
+          SB_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1qYmpycXJtZnBqbW5haWpidHNvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM0OTc1OTIsImV4cCI6MjEwOTA3MzU5Mn0.5szlgPPGnvBzaduK54RhIW4-EfGAPrgPJpy1NpnLpXE
+        run: |
+          curl -fsS "$SB_URL/rest/v1/vehicles?select=*&order=created_at.desc" \
+            -H "apikey: $SB_KEY" -H "Authorization: Bearer $SB_KEY" -o /tmp/vehicles.json
+          python3 - <<'PY'
+          import json
+          rows = json.load(open("/tmp/vehicles.json"))
+          if not isinstance(rows, list) or not rows:
+              raise SystemExit("CRM returned no vehicles - keeping the existing backup.")
+          rank = {"available": 0, "pending": 1, "sold": 2}
+          rows = sorted([v for v in rows if v.get("status") != "hidden"], key=lambda v: rank.get(v.get("status"), 3))
+          out = []
+          for v in rows:
+              photos = v.get("photos") or []
+              car = {"year": v.get("year"), "make": v.get("make"), "model": v.get("model"), "trim": v.get("trim"),
+                     "body": v.get("body_type"), "km": v.get("km"), "color": v.get("exterior_colour"), "interior": v.get("interior"),
+                     "transmission": v.get("transmission"), "fuel": v.get("fuel_type"), "drivetrain": v.get("drivetrain"), "vin": v.get("vin"),
+                     "desc": v.get("description"), "features": v.get("features") or [], "photos": photos, "img": photos[0] if photos else "",
+                     "carfax": v.get("carfax_url") or "", "price": float(v["price"]) if v.get("price") is not None else None,
+                     "sold": v.get("status") == "sold", "pending": v.get("status") == "pending"}
+              out.append({k: val for k, val in car.items() if val not in (None, "") or k in ("sold", "pending")})
+          json.dump(out, open("cars.json", "w"), indent=2, ensure_ascii=False)
+          print(f"{len(out)} vehicles written")
+          PY
+      - name: Save if changed
+        run: |
+          if git diff --quiet -- cars.json; then echo "Backup already up to date."; exit 0; fi
+          git config user.name "Car-Go CRM sync"
+          git config user.email "actions@users.noreply.github.com"
+          git add cars.json
+          git commit -m "Sync backup car list from CRM"
+          git push
