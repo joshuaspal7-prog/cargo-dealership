@@ -728,19 +728,30 @@ async function leadConsent(d, l, markDirty){
 /* ---------- pipeline ---------- */
 function renderPipeline(){
   const V=$("#view");
-  V.innerHTML = `<div class="top"><h2>Pipeline</h2><div class="muted small">Drag a card to move it. Tap a card to open it.</div></div>
-  <div class="kanban">${STAGES.map(([s,lab])=>{ const ls=S.leads.filter(l=>l.status===s); return `<div class="col" data-stage="${s}"><h4>${lab}<span>${ls.length}</span></h4>${ls.map(l=>`<div class="lcard" draggable="true" data-id="${l.id}"><b>${esc(leadName(l))}</b><div class="muted">${esc(l.looking_for||SOURCE_LABEL[l.source_platform])}</div><div style="margin-top:6px">${tierBadge(l)}</div></div>`).join("")}</div>`; }).join("")}</div>`;
+  const empty = !S.leads.length;
+  V.innerHTML = `<div class="top"><h2>Pipeline</h2><div class="muted small">Drag a card to another column, or use its “Move to” menu. Click a card to open it.</div></div>
+  ${empty?`<div class="notice" style="margin-bottom:14px"><b>No leads yet, so the board is empty.</b> Leads appear here automatically when someone sends the website form, when you add one (Leads → + Add lead), or when you use Research a Lead / Ask Claude to search. Each lead then moves left to right as you work it.<div class="actions" style="margin-top:10px"><button class="btn sm" id="pAdd">+ Add a lead</button><button class="btn sm ghost" id="pAi">Find leads</button></div></div>`:""}
+  <div class="kanban">${STAGES.map(([s,lab])=>{ const ls=S.leads.filter(l=>l.status===s); return `<div class="col" data-stage="${s}"><h4>${lab}<span>${ls.length}</span></h4>${ls.map(l=>`<div class="lcard" draggable="true" data-id="${l.id}"><b>${esc(leadName(l))}</b><div class="muted">${esc(l.looking_for||SOURCE_LABEL[l.source_platform])}</div><div style="margin-top:6px">${tierBadge(l)}</div><select class="mv" data-id="${l.id}" aria-label="Move to stage" style="margin-top:8px;padding:5px 8px;font-size:.8rem">${STAGES.map(([k,t])=>`<option value="${k}"${k===s?" selected":""}>${k===s?"Move to…":t}</option>`).join("")}</select></div>`).join("")||`<div class="muted small" style="padding:6px 2px">—</div>`}</div>`; }).join("")}</div>`;
+  $("#pAdd",V)?.addEventListener("click",()=>openLead(null));
+  $("#pAi",V)?.addEventListener("click",()=>go("assistant"));
+  const move = async (id, to) => {
+    const l=S.leads.find(x=>x.id===id); if(!l||l.status===to) return renderPipeline();
+    if (to==="sold"||to==="lost"){ renderPipeline(); await openLead(id);
+      const f=$("#lf"); if (f){ f.status.value=to; f.status.dispatchEvent(new Event("input",{bubbles:true})); (to==="sold"?f.sold_vehicle_id:f.lost_reason).scrollIntoView({block:"center"}); }
+      return toast(to==="sold"?"Pick the vehicle sold (and amount), then Save changes.":"Add why it was lost, then Save changes."); }
+    try { await q(sb.from("leads").update({status:to}).eq("id",id)); await log("status_changed","lead",id,{name:leadName(l),from:l.status,to}); l.status=to; toast(`Moved to ${STAGE_LABEL[to]}.`); renderPipeline(); }
+    catch(err){ toast(friendlyErr(err),true); renderPipeline(); }
+  };
   let dragId=null;
-  $$(".lcard",V).forEach(c=>{ c.ondragstart=e=>{dragId=c.dataset.id; e.dataTransfer.setData("text/plain",dragId);}; c.onclick=()=>openLead(c.dataset.id); });
+  $$(".lcard",V).forEach(c=>{
+    c.ondragstart=e=>{dragId=c.dataset.id; e.dataTransfer.setData("text/plain",dragId); e.dataTransfer.effectAllowed="move";};
+    c.onclick=e=>{ if(e.target.closest("select")) return; openLead(c.dataset.id); };
+  });
+  $$(".mv",V).forEach(sel=>{ sel.onclick=e=>e.stopPropagation(); sel.onchange=()=>move(sel.dataset.id, sel.value); });
   $$(".col",V).forEach(col=>{
     col.ondragover=e=>{e.preventDefault(); col.classList.add("drop");};
     col.ondragleave=()=>col.classList.remove("drop");
-    col.ondrop=async e=>{ e.preventDefault(); col.classList.remove("drop");
-      const id=e.dataTransfer.getData("text/plain")||dragId, to=col.dataset.stage, l=S.leads.find(x=>x.id===id);
-      if(!l||l.status===to) return;
-      if (to==="sold"||to==="lost"){ openLead(id); return toast(`Open the lead to record ${to==="sold"?"the vehicle sold":"why it was lost"}.`); }
-      try { await q(sb.from("leads").update({status:to}).eq("id",id)); await log("status_changed","lead",id,{name:leadName(l),from:l.status,to}); l.status=to; renderPipeline(); }
-      catch(err){ toast(friendlyErr(err),true); } };
+    col.ondrop=e=>{ e.preventDefault(); col.classList.remove("drop"); move(e.dataTransfer.getData("text/plain")||dragId, col.dataset.stage); };
   });
 }
 
