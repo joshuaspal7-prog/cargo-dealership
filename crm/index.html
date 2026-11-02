@@ -404,6 +404,8 @@ function activityText(a){
     ai_qualified: `AI scored ${d.name||"a lead"}: ${d.score}/100${d.matches?`, ${d.matches} car match${d.matches>1?"es":""}`:""}`,
     ai_matched: `AI matched ${d.name||"a lead"} to inventory (${d.matches} match${d.matches===1?"":"es"})`,
     ai_researched_post: `AI researched a ${SOURCE_LABEL[d.platform]||""} post`,
+    search_requested: `Requested a lead search${d.area&&d.area!=="all"?` in ${d.area}`:""}${d.focus?` (${d.focus})`:""}`,
+    claude_search: `Claude searched for leads: ${d.found||0} new lead${d.found===1?"":"s"}`,
     draft_created: `Outreach draft written for ${d.name||"a lead"} (${CH_LABEL[d.channel]||d.channel})`,
     lead_scored: `Scored ${d.name||"a lead"}: ${d.score}/100${d.matches?`, ${d.matches} car match${d.matches>1?"es":""}`:""}`,
     ai_lead_search: `AI web search: ${d.searches} search${d.searches===1?"":"es"}, ${d.found} new lead${d.found===1?"":"s"}`
@@ -983,11 +985,15 @@ async function renderAssistant(){
   <div id="aiKeyNote"></div>
   <div class="grid two">
     <div class="panel"><h3>🔎 Find New Leads</h3>
-      <p class="muted small" style="margin-top:-6px">Claude searches the public web (Reddit, forums, community boards) for people near Hamilton asking about buying a used car. Every lead saved links to a page that actually came up in the search; anything it can't verify is thrown out. Facebook groups and Kijiji can't be searched automatically — use “Research a Lead” for those.</p>
+      <p class="muted small" style="margin-top:-6px">Claude searches the public web (Reddit, forums, community boards) for people near Hamilton asking about buying a used car, and saves real posts here with their link — nothing is made up. Requests are picked up automatically (usually within a couple of hours during the day). Facebook groups need a person: use the shortcuts below.</p>
       <div class="form"><div><label>Area</label><select id="fArea">${opts([["Hamilton","Hamilton"],["Stoney Creek","Stoney Creek"],["Burlington","Burlington"],["Ancaster","Ancaster"],["Brantford","Brantford"],["Grimsby","Grimsby"]],"Hamilton","Hamilton & all nearby")}</select></div>
       <div><label>Searches (≈ US$0.01 each)</label><select id="fMax"><option>3</option><option selected>5</option><option>8</option></select></div>
       <div class="full"><label>Focus (optional)</label><input id="fFocus" placeholder="e.g. SUVs, first cars for students, winter AWD"></div></div>
-      <div class="actions"><button class="btn" id="fGo" data-ai>Find New Leads</button></div><div class="msg" id="fMsg"></div>
+      <div class="actions"><button class="btn" id="fQueue">Ask Claude to search (free)</button><button class="btn ghost" id="fGo" data-ai>Search now (API key)</button></div><div class="msg" id="fMsg"></div>
+      <div id="reqs" class="small" style="margin-top:10px"></div>
+      <div class="sec">Search it yourself — one click each</div>
+      <div id="shortcuts" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+      <p class="muted small" style="margin:8px 0 0">Opens a search in a new tab. Found someone asking for a car? Copy the link and their post into <b>Research a Lead</b> →</p>
     </div>
     <div class="panel"><h3>📋 Research a Lead</h3>
       <p class="muted small" style="margin-top:-6px">Found someone asking for a car in a Facebook group, on Reddit or Kijiji? Paste the link and their post. The AI pulls out what they want, budget and timeline (only what they actually said), scores them and matches your cars.</p>
@@ -1048,10 +1054,35 @@ async function renderAssistant(){
     try { const t = await bulkOutreach(); await done(m, t.length ? `${t.length} draft(s) written. Open each lead → Conversation to review, edit and approve.` : "Every open lead already has a message drafted or sent."); }
     catch(e){ await done(m, friendlyErr(e), false); } };
   $("#wGo").onclick = () => go("reports");
+  const drawShortcuts = () => {
+    const area = $("#fArea").value || "Hamilton", focus = $("#fFocus").value.trim(), fq = focus ? " "+focus : "";
+    const enc = encodeURIComponent, links = [
+      ["Reddit r/Hamilton", `https://www.reddit.com/r/Hamilton/search/?q=${enc((focus||"car")+" buy OR looking OR recommend")}&restrict_sr=1&sort=new&t=month`],
+      ["Reddit r/Burlington", `https://www.reddit.com/r/Burlington/search/?q=${enc((focus||"car")+" buy OR looking OR dealership")}&restrict_sr=1&sort=new&t=month`],
+      ["Reddit — Ontario car advice", `https://www.reddit.com/search/?q=${enc(`"${area}" used car${fq} looking`)}&sort=new&t=month`],
+      ["Facebook posts", `https://www.facebook.com/search/posts/?q=${enc(`looking for a used car ${area}${fq}`)}`],
+      ["Facebook groups", `https://www.facebook.com/search/groups/?q=${enc(`${area} buy sell cars`)}`],
+      ["Kijiji wanted ads", `https://www.google.com/search?q=${enc(`site:kijiji.ca "wanted" car ${area}${fq}`)}&tbs=qdr:m`],
+      ["Google (past month)", `https://www.google.com/search?q=${enc(`"looking for" used car ${area}${fq} recommendations`)}&tbs=qdr:m`]];
+    $("#shortcuts").innerHTML = links.map(([t,u])=>`<a class="btn sm ghost" href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(t)} ↗</a>`).join("");
+  };
+  drawShortcuts(); $("#fArea").onchange = drawShortcuts; $("#fFocus").oninput = drawShortcuts;
+  const drawReqs = async () => { try {
+      const rs = await q(sb.from("search_requests").select("*").order("created_at",{ascending:false}).limit(5));
+      $("#reqs").innerHTML = rs.length ? `<b>Recent requests</b>` + rs.map(r=>`<div style="margin-top:4px">${{pending:"⏳ Waiting",running:"🔄 Searching",done:"✅ Done",failed:"⚠️ Failed"}[r.status||"pending"]} · ${esc([r.area,r.focus].filter(Boolean).join(" · ")||"General search")} · <span class="muted">${esc(staffName(r.requested_by)||"")} ${ago(r.created_at)}</span>${r.result_summary?`<div class="muted">${esc(r.result_summary)}</div>`:""}</div>`).join("") : "";
+    } catch(e){} };
+  drawReqs();
+  $("#fQueue").onclick = async () => { const m=$("#fMsg");
+    try { const pend = await q(sb.from("search_requests").select("id").in("status",["pending","running"]));
+      if (pend.length >= 3) { m.className="msg err"; m.textContent="There are already searches waiting — they'll be picked up soon."; return; }
+      await q(sb.from("search_requests").insert({requested_by:S.user.id, area:$("#fArea").value||null, focus:nul($("#fFocus").value)}));
+      await log("search_requested","search",null,{area:$("#fArea").value||"all", focus:$("#fFocus").value});
+      m.className="msg ok"; m.textContent="Request sent. Claude will search and new leads will show up in Leads (usually within a couple of hours during the day)."; drawReqs();
+    } catch(e){ m.className="msg err"; m.textContent=friendlyErr(e); } };
   drawRuns();
   const freeMode = () => { AI_READY=false; $("#aiStatus").className="badge st-available"; $("#aiStatus").textContent="Free mode";
-    $("#aiKeyNote").innerHTML = `<div class="notice good" style="margin-bottom:14px"><b>Free mode is on.</b> Scoring, inventory matching and Research a Lead run on built-in rules — no API key, no cost. To find new leads on the web for free, ask Claude in your chat: <i>“find new Car-Go leads”</i> — it searches and saves real posts here. (Adding a Claude API key later upgrades these buttons to full AI automatically.)</div>`;
-    $("#fGo").disabled=true; $("#fGo").textContent="Ask Claude in chat"; $("#oGo").disabled=false; };
+    $("#aiKeyNote").innerHTML = `<div class="notice good" style="margin-bottom:14px"><b>Free mode is on.</b> Scoring, inventory matching and Research a Lead run on built-in rules — no API key, no cost. To find new leads, use <b>Ask Claude to search</b> — it's free and anyone on your team can use it. (Adding a Claude API key later upgrades these buttons to full AI automatically.)</div>`;
+    $("#fGo").classList.add("hidden"); $("#oGo").disabled=false; };
   try { const s = await ai("status"); if (s.ready){ AI_READY=true; $("#aiStatus").className="badge st-available"; $("#aiStatus").textContent="AI connected"; } else freeMode(); }
   catch(e){ freeMode(); }
 }
