@@ -1,6 +1,5 @@
 User-agent: *
 Allow: /
+Disallow: /crm/
 
 Sitemap: https://cargo-dealership.com/sitemap.xml
-
-Disallow: /crm/
