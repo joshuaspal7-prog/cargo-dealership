@@ -155,15 +155,27 @@ const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&g
 const mail=d=>{const sub="Inquiry: "+d.year+" "+d.make+" "+d.model;return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)?"mailto:CarGodealership@gmail.com?subject="+encodeURIComponent(sub):"https://mail.google.com/mail/?view=cm&fs=1&to=CarGodealership@gmail.com&su="+encodeURIComponent(sub)};
 const money=v=>Number(v)>0?"$"+Number(v).toLocaleString("en-CA"):"Call for price";
 const safe=u=>/^(https?:\/\/|[\w\-./]+$)/i.test(u||"")?esc(u):"";
+/* Inventory comes live from the Car-Go CRM (read-only public view). Falls back to cars.json if the CRM can't be reached. */
+async function loadCrmCars(){try{
+  const K="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1qYmpycXJtZnBqbW5haWpidHNvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM0OTc1OTIsImV4cCI6MjEwOTA3MzU5Mn0.5szlgPPGnvBzaduK54RhIW4-EfGAPrgPJpy1NpnLpXE";
+  const r=await fetch("https://mjbjrqrmfpjmnaijbtso.supabase.co/rest/v1/vehicles?select=*&order=created_at.desc",{headers:{apikey:K,Authorization:"Bearer "+K},cache:"no-store"});
+  if(!r.ok)return null;const rows=await r.json();if(!Array.isArray(rows))return null;
+  const rank={available:0,pending:1,sold:2};
+  return rows.filter(v=>v.status!=="hidden").sort((a,b)=>(rank[a.status]??3)-(rank[b.status]??3)).map(v=>({
+    year:v.year,make:v.make,model:v.model,trim:v.trim,body:v.body_type,km:v.km,color:v.exterior_colour,interior:v.interior,
+    transmission:v.transmission,fuel:v.fuel_type,drivetrain:v.drivetrain,vin:v.vin,desc:v.description,features:v.features||[],
+    photos:v.photos||[],img:(v.photos||[])[0]||"",carfax:v.carfax_url||"",price:v.price!=null?Number(v.price):null,
+    sold:v.status==="sold",pending:v.status==="pending"}));
+}catch(e){return null}}
 async function load(f){try{const r=await fetch(f,{cache:"no-store"});return r.ok?await r.json():[]}catch(e){return null}}
 (async()=>{
-  const cars=await load("cars.json"),revs=await load("reviews.json");
+  const cars=(await loadCrmCars())??await load("cars.json"),revs=await load("reviews.json");
   window.__cars=cars;setEnqCars(cars);
   const ce=$("#cars");
   if(cars===null)ce.innerHTML='<div class="empty">Call 416-843-8036 to hear what’s on the lot.</div>';
   else if(!cars.length)ce.innerHTML='<div class="empty">New vehicles are coming soon. Call us at 416-843-8036 to ask what’s arriving.</div>';
   else ce.innerHTML=cars.map((d,i)=>`<div class="car" data-i="${i}" tabindex="0" role="button" aria-label="View details for ${esc(d.year)} ${esc(d.make)} ${esc(d.model)}"><div class="pic">${d.img?`<img src="${safe(d.img)}" alt="">`:"🚗"}</div><div class="cb">
-  ${d.sold?'<span class="tag">SOLD</span>':''}<h3>${esc(d.year)} ${esc(d.make)} ${esc(d.model)}</h3>
+  ${d.sold?'<span class="tag">SOLD</span>':d.pending?'<span class="tag">SALE PENDING</span>':''}<h3>${esc(d.year)} ${esc(d.make)} ${esc(d.model)}</h3>
   <div class="price">${money(d.price)}</div>
   ${d.km?`<div class="meta">${Number(d.km).toLocaleString("en-CA")} km</div>`:""}
   <p>${esc(d.desc)}</p>

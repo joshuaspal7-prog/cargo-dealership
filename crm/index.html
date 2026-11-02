@@ -748,6 +748,7 @@ function renderPipeline(){
 function renderInventory(){
   const V=$("#view");
   V.innerHTML = `<div class="top"><h2>Inventory</h2><button class="btn" id="addVeh">+ Add vehicle</button></div>
+  <p class="muted small" style="margin-top:-8px">Changes here show on cargo-dealership.com right away. Available and Sale pending cars are listed; Sold cars show a SOLD tag; Hidden cars don't appear.</p>
   ${S.vehicles.length?`<div class="grid inv">${S.vehicles.map(v=>`<div class="vcard" data-id="${v.id}"><div class="ph" style="${v.photos?.[0]?`background-image:url('${esc(v.photos[0])}')`:""}">${v.photos?.[0]?"":"No photo"}</div><div class="bd"><div style="display:flex;justify-content:space-between;gap:8px"><h4>${esc(vehTitle(v))}</h4><span class="badge st-${v.status}">${esc(v.status)}</span></div><div class="price">${v.price!=null?money(v.price):'<span class="muted small">No price set</span>'}</div><div class="muted small">${[km(v.km),v.transmission,v.drivetrain,v.fuel_type].filter(Boolean).map(esc).join(" · ")}</div></div></div>`).join("")}</div>`:`<div class="panel empty">No vehicles yet. Add your first car.</div>`}`;
   $("#addVeh").onclick=()=>openVehicle(null);
   $$(".vcard",V).forEach(c=>c.onclick=()=>openVehicle(c.dataset.id));
@@ -1072,7 +1073,7 @@ async function renderAssistant(){
       $("#reqs").innerHTML = rs.length ? `<b>Recent requests</b>` + rs.map(r=>`<div style="margin-top:4px">${{pending:"⏳ Waiting",running:"🔄 Searching",done:"✅ Done",failed:"⚠️ Failed"}[r.status||"pending"]} · ${esc([r.area,r.focus].filter(Boolean).join(" · ")||"General search")} · <span class="muted">${esc(staffName(r.requested_by)||"")} ${ago(r.created_at)}</span>${r.result_summary?`<div class="muted">${esc(r.result_summary)}</div>`:""}</div>`).join("") : "";
     } catch(e){} };
   drawReqs();
-  $("#fQueue").onclick = async () => { const m=$("#fMsg");
+  $("#fQueue").onclick = async () => { const m=$("#fMsg"), btn=$("#fQueue"); if (btn.disabled) return; btn.disabled=true; setTimeout(()=>btn.disabled=false,4000);
     try { const pend = await q(sb.from("search_requests").select("id").in("status",["pending","running"]));
       if (pend.length >= 3) { m.className="msg err"; m.textContent="There are already searches waiting — they'll be picked up soon."; return; }
       await q(sb.from("search_requests").insert({requested_by:S.user.id, area:$("#fArea").value||null, focus:nul($("#fFocus").value)}));
