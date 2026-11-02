@@ -142,6 +142,7 @@ tr:last-child td{border-bottom:0}
 .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#000;border:1px solid var(--line);padding:10px 16px;border-radius:10px;z-index:60;max-width:90vw}
 .toast.err{border-color:#6b2630;color:#ff8b97}
 
+@media print{aside,.toolbar,#rpPrint,#rpDays,#toastHost{display:none!important}.app{display:block}body,main{background:#fff;color:#000}.panel,.kpi{border-color:#ccc;background:#fff;break-inside:avoid}.muted{color:#555}th{background:#eee;color:#333}.bar{background:#eee}}
 @media (max-width:1100px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.two{grid-template-columns:1fr}}
 @media (max-width:760px){
   .app{grid-template-columns:1fr}
@@ -202,6 +203,7 @@ tr:last-child td{border-bottom:0}
     <button class="nav" data-view="pipeline">🧭 Pipeline</button>
     <button class="nav" data-view="inventory">🚗 Inventory</button>
     <button class="nav" data-view="assistant">✨ AI Assistant</button>
+    <button class="nav" data-view="reports">📈 Reports</button>
     <button class="nav" data-view="settings">⚙️ Settings</button>
     <div class="me"><div id="meName"></div><button class="linkbtn" data-signout style="margin-top:6px">Sign out</button></div>
   </aside>
@@ -330,7 +332,7 @@ async function boot(){
   show("app");
   await loadAll();
   const v = (location.hash||"").slice(1);
-  go(["dashboard","leads","pipeline","inventory","assistant","settings"].includes(v) ? v : "dashboard");
+  go(["dashboard","leads","pipeline","inventory","assistant","reports","settings"].includes(v) ? v : "dashboard");
 }
 
 /* ---------- data ---------- */
@@ -350,7 +352,7 @@ async function refresh(){ await loadAll(); render(); }
 /* ---------- routing ---------- */
 $$(".nav").forEach(b => b.onclick = () => go(b.dataset.view));
 function go(v){ S.view=v; history.replaceState(null,"","#"+v); $$(".nav").forEach(b=>b.classList.toggle("on", b.dataset.view===v)); render(); window.scrollTo(0,0); }
-function render(){ ({dashboard:renderDashboard, leads:renderLeads, pipeline:renderPipeline, inventory:renderInventory, assistant:renderAssistant, settings:renderSettings})[S.view](); }
+function render(){ ({dashboard:renderDashboard, leads:renderLeads, pipeline:renderPipeline, inventory:renderInventory, assistant:renderAssistant, reports:renderReports, settings:renderSettings})[S.view](); }
 
 /* ---------- dashboard ---------- */
 async function renderDashboard(){
@@ -402,6 +404,7 @@ function activityText(a){
     ai_qualified: `AI scored ${d.name||"a lead"}: ${d.score}/100${d.matches?`, ${d.matches} car match${d.matches>1?"es":""}`:""}`,
     ai_matched: `AI matched ${d.name||"a lead"} to inventory (${d.matches} match${d.matches===1?"":"es"})`,
     ai_researched_post: `AI researched a ${SOURCE_LABEL[d.platform]||""} post`,
+    draft_created: `Outreach draft written for ${d.name||"a lead"} (${CH_LABEL[d.channel]||d.channel})`,
     lead_scored: `Scored ${d.name||"a lead"}: ${d.score}/100${d.matches?`, ${d.matches} car match${d.matches>1?"es":""}`:""}`,
     ai_lead_search: `AI web search: ${d.searches} search${d.searches===1?"":"es"}, ${d.found} new lead${d.found===1?"":"s"}`
   };
@@ -640,7 +643,7 @@ async function leadConvo(d, l, markDirty){
   d.body.innerHTML = `
     <div class="notice" style="margin-bottom:14px">Nothing is ever sent automatically. Drafts need a staff member's approval, and approval is blocked unless this lead has a recorded consent or legal basis for that channel (CASL). After approving, send it yourself from Instagram, Gmail, etc., then click “Mark sent”.</div>
     ${msgs.length?msgs.map(m=>`<div class="msgitem ${m.direction==="inbound"?"in":"out"}">
-      <header><span>${m.direction==="inbound"?"⬅ From lead":"➡ To lead"} · ${esc(CH_LABEL[m.channel]||m.channel)}${m.ai_generated?" · AI draft":""}</span><span>${fmtDT(m.created_at)}</span></header>
+      <header><span>${m.direction==="inbound"?"⬅ From lead":"➡ To lead"} · ${esc(CH_LABEL[m.channel]||m.channel)}${m.ai_generated?" · auto-drafted":""}</span><span>${fmtDT(m.created_at)}</span></header>
       ${m.subject?`<b>${esc(m.subject)}</b>`:""}<div class="pre">${esc(m.body)}</div>
       ${m.direction==="outbound"?`<div class="small muted" style="margin-top:6px">${esc(S_[m.state]||m.state)}${m.approved_by?` · approved by ${esc(staffName(m.approved_by))}`:""}${m.sent_at?` · sent ${fmtDT(m.sent_at)}`:""}</div>
         <div class="actions" style="margin-top:6px">${m.state==="draft"?`<button class="btn sm ok" data-approve="${m.id}">Approve</button><button class="btn sm ghost" data-reject="${m.id}">Reject</button>`:""}${m.state==="approved"?`<button class="btn sm" data-sent="${m.id}">Mark sent</button><button class="btn sm ghost" data-copy="${m.id}">Copy text</button>`:""}</div>`:""}
@@ -653,8 +656,14 @@ async function leadConvo(d, l, markDirty){
       <div class="full"><label>Message</label><textarea name="body" required></textarea></div>
       <div class="full" id="chk"></div>
     </form>
-    <div class="actions"><button class="btn" id="mAdd">Save</button></div>`;
-  const f=$("#mf");
+    <div class="actions"><button class="btn ghost" id="mGen">✨ Write a draft for me</button><button class="btn" id="mAdd">Save</button></div>`;
+  const f=$("#mf"); let generated=false;
+  $("#mGen").onclick = async () => {
+    f.direction.value="outbound"; if (["phone","in_person"].includes(f.channel.value)) f.channel.value=defaultChannel(l);
+    const g = await draftFor(l, f.channel.value); f.subject.value=g.subject||""; f.body.value=g.body; generated=true; check();
+    toast("Draft written — edit it, then Save. It still needs approval before sending.");
+  };
+  f.body.addEventListener("input",()=>{});
   const check = async () => {
     if (f.direction.value!=="outbound") return $("#chk").innerHTML="";
     const r = await sb.rpc("contact_check",{p_lead:l.id,p_channel:f.channel.value});
@@ -666,7 +675,7 @@ async function leadConvo(d, l, markDirty){
     const body=f.body.value.trim(); if(!body) return toast("Write the message first.",true);
     const out = f.direction.value==="outbound";
     try {
-      await q(sb.from("messages").insert({lead_id:l.id, direction:f.direction.value, channel:f.channel.value, subject:nul(f.subject.value), body, state: out?"draft":"logged", created_by:S.user.id}));
+      await q(sb.from("messages").insert({lead_id:l.id, direction:f.direction.value, channel:f.channel.value, subject:nul(f.subject.value), body, state: out?"draft":"logged", ai_generated: out&&generated, created_by:S.user.id}));
       await log("message_logged","lead",l.id,{name:leadName(l),direction:f.direction.value});
       markDirty(); leadConvo(d,l,markDirty);
     } catch(e){ toast(friendlyErr(e),true); }
@@ -823,6 +832,74 @@ async function ai(action, payload={}){
   if (data?.error) throw new Error(data.error);
   return data;
 }
+
+/* ---------- Phase 5: outreach drafts (free, template-based, personalised from real lead data) ---------- */
+function defaultChannel(l){
+  if (l.contact_permission==="unsubscribed") return "public_reply";
+  if (l.source_platform==="website_form") return l.contact_email ? "email" : (l.contact_phone ? "sms" : "website");
+  if (["instagram","facebook"].includes(l.source_platform) && ["implied","express"].includes(l.contact_permission)) return l.source_platform;
+  if (l.contact_email && ["implied","express"].includes(l.contact_permission)) return "email";
+  return "public_reply";
+}
+function firstName(l){ if (!l.display_name || l.display_name===l.contact_handle) return null; const f=l.display_name.trim().split(/\s+/)[0]; return /^[A-Za-zÀ-ÿ'-]{2,}$/.test(f) ? f[0].toUpperCase()+f.slice(1) : null; }
+function pick(l, arr){ let h=0; for (const c of String(l.id)) h=(h*31+c.charCodeAt(0))>>>0; return arr[h%arr.length]; }
+async function draftFor(l, channel){
+  const st=S.settings||{}, me=(S.me.full_name||"").split(" ")[0] || "the Car-Go team", biz=st.business_name||"Car-Go Dealership Inc.";
+  let ms=[]; try { ms = await q(sb.from("lead_matches").select("*").eq("lead_id",l.id).order("fit",{ascending:false})); } catch {}
+  let v = ms.map(m=>S.vehicles.find(x=>x.id===m.vehicle_id)).find(x=>x && ["available","pending"].includes(x.status));
+  if (!v && !ms.length) { const r = ruleMatch(l, S.vehicles); v = r.length ? S.vehicles.find(x=>x.id===r[0].vehicle_id) : null; }
+  const name = firstName(l), hi = name ? `Hi ${name},` : "Hi there,";
+  const want = (l.looking_for||"").toLowerCase() || null;
+  const vt = v ? vehTitle(v) : null;
+  const facts = v ? [v.price!=null?money(v.price):null, v.km!=null?km(v.km):null, v.drivetrain||null].filter(Boolean).join(", ") : "";
+  const isEnq0 = l.source_platform==="website_form";
+  const avail = v ? (v.status==="pending" ? `${isEnq0?"it":"the "+vt} has a sale pending right now, but I'll let you know right away if that changes` : `${isEnq0?"it's":"the "+vt+" is"} still available`) : null;
+  const sig = `${me}\n${biz}\n${st.address||""}\n${st.phone||""}${st.website?" · "+st.website.replace(/^https?:\/\//,""):""}`.trim();
+  const unsub = st.unsubscribe_text || "Reply STOP to opt out.";
+  const isEnquiry = l.source_platform==="website_form";
+  const asked = isEnquiry && v ? `about the ${vt}` : "";
+  let subject = null, body;
+
+  if (channel==="public_reply"){
+    body = v
+      ? pick(l,[
+        `If you're still looking, we have a ${vt} at our lot in Stoney Creek (${facts}) that might be worth a look. Happy to answer any questions here. Photos and the CARFAX are on cargo-dealership.com. Full disclosure, I'm with Car-Go Dealership. Good luck with the search either way!`,
+        `Not sure if you've found something yet, but we've got a ${vt} (${facts}) at Car-Go on Centennial Pkwy that sounds close to what you described. I work there, so take that into account 🙂 Pics and CARFAX: cargo-dealership.com. Feel free to ask me anything here.`])
+      : pick(l,[
+        `A couple of tips from someone who works at a small local lot (Car-Go, on Centennial Pkwy): always ask for the CARFAX, get an independent inspection if you can, and budget a bit for winter tires. We don't have exactly that in stock right now, but new cars come in regularly. Happy to keep an eye out if you share your must-haves.`,
+        `Good luck with the search! Full disclosure, I'm with Car-Go Dealership in Stoney Creek. Nothing on our lot matches exactly right now, but if you post your budget and must-haves I'm happy to give honest advice, or keep an eye out as new cars come in.`]);
+  } else if (channel==="email" || channel==="website"){
+    subject = isEnquiry && vt ? `Re: the ${vt}` : (vt ? `${vt} at Car-Go` : "Thanks for reaching out to Car-Go");
+    body = `${hi}\n\n` + (isEnquiry ? `Thanks for reaching out${asked?" "+asked:""}! ` : `Thanks for your interest in Car-Go Dealership. `) +
+      (avail ? `Good news: ${avail}.${v.price!=null&&v.status!=="pending"?` It's listed at ${money(v.price)}${v.km!=null?` with ${km(v.km)}`:""}.`:""}${v.carfax_url?` You can see the CARFAX report here: ${v.carfax_url}`:""}\n\n`
+             : `We don't have an exact match on the lot right now, but new vehicles come in regularly. If you let me know your budget and must-haves, I'll reach out when something fits.\n\n`) +
+      (v ? pick(l,[`Would you like to come see it or take it for a test drive? Let me know a day and time that works and I'll have it ready.`,`Happy to answer any questions, or set up a test drive. What day works best for you?`]) : `Is there anything specific you're looking for, like body style, budget or timing?`) +
+      `\n\nYou can reply to this email or call/text ${st.phone||"us"}.\n\nThanks,\n${sig}` +
+      (l.contact_permission==="express" || !isEnquiry ? `\n\n${unsub}` : "");
+  } else if (channel==="sms"){
+    body = `${name?`Hi ${name}`:"Hi"}, it's ${me} from Car-Go Dealership. ` + (isEnquiry ? `Thanks for your message${asked?" "+asked:""}. ` : "") +
+      (avail ? `Good news, ${avail}${v.price!=null&&v.status!=="pending"?` (${money(v.price)})`:""}. Want to book a test drive this week?` : `Nothing on the lot matches exactly right now. Want me to text you when something comes in?`) +
+      ` Reply STOP to opt out.`;
+  } else { // instagram / facebook DM
+    body = `${name?`Hi ${name}`:"Hi"}, it's ${me} from Car-Go Dealership 👋 ` + (isEnquiry ? `Thanks for reaching out${asked?" "+asked:""}! ` : "") +
+      (avail ? `${avail[0].toUpperCase()+avail.slice(1)}${v.price!=null&&v.status!=="pending"?` (${facts})`:""}. Want to come see it or book a test drive?` : `We don't have an exact match right now, but new cars come in often. What are your must-haves? I can keep an eye out.`) +
+      `\n\nIf you'd rather not get messages from us, just reply STOP.`;
+  }
+  return { subject, body };
+}
+async function bulkOutreach(){
+  const open = S.leads.filter(l=>["new","researching","qualified","responded"].includes(l.status) && l.contact_permission!=="unsubscribed");
+  const msgs = await q(sb.from("messages").select("lead_id,direction,state").eq("direction","outbound"));
+  const has = new Set(msgs.filter(m=>m.state!=="rejected").map(m=>m.lead_id));
+  const todo = open.filter(l=>!has.has(l.id)).sort((a,b)=>(b.score??-1)-(a.score??-1)).slice(0,10);
+  for (const l of todo){
+    const ch = defaultChannel(l), g = await draftFor(l, ch);
+    await q(sb.from("messages").insert({lead_id:l.id, direction:"outbound", channel:ch, subject:g.subject, body:g.body, state:"draft", ai_generated:true, created_by:S.user.id}));
+    await log("draft_created","lead",l.id,{name:leadName(l), channel:ch});
+  }
+  return todo;
+}
+
 /* ---------- FREE rule-based scoring & matching (no API key, runs in the browser) ---------- */
 const TOWNS = [[/\b(hamilton|stoney creek|stoney|east hamilton|mountain|centennial|winona)\b/i,15,"in Hamilton / Stoney Creek"],
   [/\b(burlington|ancaster|grimsby|dundas|waterdown|binbrook|flamborough|beamsville|glanbrook|caledonia|mount hope)\b/i,13,"close to Hamilton"],
@@ -928,8 +1005,8 @@ async function renderAssistant(){
       <div class="actions"><button class="btn" id="mGo" data-ai>Match Leads to Inventory</button></div><div class="msg" id="mMsg"></div></div>
   </div>
   <div class="grid aibtns" style="margin-top:14px">
-    <div class="aibtn"><h4>✉️ Generate Outreach</h4><p class="muted small" style="margin:0 0 12px">Natural replies for Instagram, Facebook, email, SMS or the website — saved as drafts that need approval.</p><button class="btn sm" disabled>Coming in Phase 5</button></div>
-    <div class="aibtn"><h4>📈 Weekly Sales Report</h4><p class="muted small" style="margin:0 0 12px">Leads found, best sources, most-requested vehicles, common budgets, and what to do next.</p><button class="btn sm" disabled>Coming in Phase 6</button></div>
+    <div class="aibtn"><h4>✉️ Generate Outreach</h4><p class="muted small" style="margin:0 0 12px">Writes a personal draft for up to 10 top leads that haven't been contacted — public thread replies for people found online, email/SMS replies for enquiries. Drafts wait for your approval; nothing is sent.</p><button class="btn sm" id="oGo" data-ai>Generate Outreach</button><div class="msg" id="oMsg"></div></div>
+    <div class="aibtn"><h4>📈 Weekly Sales Report</h4><p class="muted small" style="margin:0 0 12px">Leads found, best sources, most-requested vehicles, common budgets, and what to do next — from your real CRM data.</p><button class="btn sm" id="wGo">Open this week's report</button></div>
   </div>
   <div class="panel" style="margin-top:14px"><h3>Research history</h3><div id="runs" class="muted small">Loading…</div></div>`;
 
@@ -967,10 +1044,14 @@ async function renderAssistant(){
     try { const r = await ai("match"); const n=(r.results||[]).reduce((a,x)=>a+(x.matches||0),0); await done(m, r.processed ? `Checked ${r.processed} lead(s) against ${r.inventory_count} car(s): ${n} match(es) found.` : r.message); }
     catch(e){ await done(m, e.message, false); } };
 
+  $("#oGo").onclick = async () => { const m=$("#oMsg"); busy(null,m,true,"Writing drafts…");
+    try { const t = await bulkOutreach(); await done(m, t.length ? `${t.length} draft(s) written. Open each lead → Conversation to review, edit and approve.` : "Every open lead already has a message drafted or sent."); }
+    catch(e){ await done(m, friendlyErr(e), false); } };
+  $("#wGo").onclick = () => go("reports");
   drawRuns();
   const freeMode = () => { AI_READY=false; $("#aiStatus").className="badge st-available"; $("#aiStatus").textContent="Free mode";
     $("#aiKeyNote").innerHTML = `<div class="notice good" style="margin-bottom:14px"><b>Free mode is on.</b> Scoring, inventory matching and Research a Lead run on built-in rules — no API key, no cost. To find new leads on the web for free, ask Claude in your chat: <i>“find new Car-Go leads”</i> — it searches and saves real posts here. (Adding a Claude API key later upgrades these buttons to full AI automatically.)</div>`;
-    $("#fGo").disabled=true; $("#fGo").textContent="Ask Claude in chat"; };
+    $("#fGo").disabled=true; $("#fGo").textContent="Ask Claude in chat"; $("#oGo").disabled=false; };
   try { const s = await ai("status"); if (s.ready){ AI_READY=true; $("#aiStatus").className="badge st-available"; $("#aiStatus").textContent="AI connected"; } else freeMode(); }
   catch(e){ freeMode(); }
 }
@@ -979,6 +1060,95 @@ async function drawRuns(){
   try { const runs = await q(sb.from("research_runs").select("*").order("started_at",{ascending:false}).limit(15));
     el.innerHTML = runs.length ? `<ul class="list">${runs.map(r=>`<li><b>${esc({web_search:"Web search",manual_paste:"Researched a post",scheduled:"Scheduled search",market_intel:"Market research",enquiry_form:"Enquiry"}[r.kind]||r.kind)}</b> · <span class="${r.status==="failed"?"":"muted"}" style="${r.status==="failed"?"color:#ff8b97":""}">${esc(r.status)}</span> · <span class="muted">${fmtDT(r.started_at)} by ${esc(staffName(r.started_by)||"—")}</span><div class="small">${esc(r.summary||r.error||r.query||"")}</div></li>`).join("")}</ul>` : "No research has been run yet. Nothing here is ever invented — runs only appear after they actually happen.";
   } catch(e){ el.textContent = friendlyErr(e); }
+}
+
+
+/* ---------- Phase 6: weekly report (from real CRM data) ---------- */
+let REPORT_DAYS = 7;
+async function renderReports(){
+  const V=$("#view");
+  V.innerHTML = `<div class="top"><h2>Sales report</h2><div class="muted">Loading…</div></div>`;
+  const now=new Date(), start=new Date(now-REPORT_DAYS*864e5), prevStart=new Date(now-2*REPORT_DAYS*864e5);
+  let acts=[], runs=[], msgs=[];
+  try { [acts, runs, msgs] = await Promise.all([
+      q(sb.from("activity_log").select("action,actor_kind,details,created_at").gte("created_at",prevStart.toISOString()).order("created_at",{ascending:false}).limit(1000)),
+      q(sb.from("research_runs").select("*").gte("started_at",start.toISOString())),
+      q(sb.from("messages").select("lead_id,direction,channel,state,created_at,sent_at").gte("created_at",start.toISOString()))]);
+  } catch(e){ V.innerHTML=`<div class="panel">Couldn't load report: ${esc(friendlyErr(e))}</div>`; return; }
+  const L=S.leads, inP=(d,a,b)=>{const t=new Date(d); return t>=a && t<b;};
+  const cur=L.filter(l=>inP(l.created_at,start,now)), prev=L.filter(l=>inP(l.created_at,prevStart,start));
+  const open=L.filter(l=>!["sold","lost"].includes(l.status));
+  const qualifiedSet=["qualified","contacted","responded","appointment","sold"];
+  const enq = acts.filter(a=>a.action==="enquiry_received" && inP(a.created_at,start,now)).length;
+  const sentN = msgs.filter(m=>m.direction==="outbound" && m.state==="sent").length;
+  const draftN = msgs.filter(m=>m.direction==="outbound" && m.state==="draft").length;
+  const soldNow = acts.filter(a=>a.action==="status_changed" && a.details?.to==="sold" && inP(a.created_at,start,now)).length;
+  const apptNow = L.filter(l=>l.appointment_at && inP(l.appointment_at,start,new Date(now.getTime()+7*864e5))).length;
+  const delta = (a,b)=> b===0 ? (a? "new" : "–") : `${a>=b?"+":""}${Math.round((a-b)/b*100)}%`;
+
+  // sources
+  const srcRows = SOURCES.map(([k,lab])=>{ const all=L.filter(l=>l.source_platform===k); if(!all.length) return null;
+    const c=cur.filter(l=>l.source_platform===k).length, ql=all.filter(l=>qualifiedSet.includes(l.status)).length, sold=all.filter(l=>l.status==="sold").length;
+    const avg = all.filter(l=>l.score!=null); return {lab,c,all:all.length,ql,sold,avg: avg.length?Math.round(avg.reduce((a,l)=>a+l.score,0)/avg.length):null}; }).filter(Boolean).sort((a,b)=>b.ql-a.ql||b.all-a.all);
+
+  // demand (open + this period)
+  const pool = [...new Map([...open,...cur].map(l=>[l.id,l])).values()];
+  const types={}; pool.forEach(l=>{ const t=leadText(l); Object.entries(BODY).forEach(([k,re])=>{ if(re.test(t)) types[k]=(types[k]||0)+1; }); if(/\b(awd|4wd|4x4|all.?wheel)\b/i.test(t)) types["AWD/4WD"]=(types["AWD/4WD"]||0)+1; if(/first car/i.test(t)) types["first car"]=(types["first car"]||0)+1; });
+  const typeRows = Object.entries(types).sort((a,b)=>b[1]-a[1]);
+  const buckets=[["Under $10k",0,10000],["$10k–15k",10000,15000],["$15k–20k",15000,20000],["$20k–30k",20000,30000],["$30k+",30000,1e9]];
+  const bud = {}; let unknownBud=0; pool.forEach(l=>{ const b=l.budget_max||l.budget_min||parseMoney(l.budget_text); if(!b){unknownBud++;return;} const k=buckets.find(([,a,z])=>b>=a&&b<z); bud[k[0]]=(bud[k[0]]||0)+1; });
+  const locs={}; pool.forEach(l=>{ if(l.location){ const k=l.location.trim().replace(/\b\w/g,c=>c.toUpperCase()); locs[k]=(locs[k]||0)+1; } });
+
+  // inventory fit
+  let matches=[]; try { matches = await q(sb.from("lead_matches").select("lead_id,vehicle_id,fit")); } catch {}
+  const openIds=new Set(open.map(l=>l.id));
+  const vehDemand = S.vehicles.filter(v=>["available","pending"].includes(v.status)).map(v=>({v, n:matches.filter(m=>m.vehicle_id===v.id && openIds.has(m.lead_id)).length})).sort((a,b)=>b.n-a.n);
+  const unmatched = open.filter(l=>!matches.some(m=>m.lead_id===l.id) && l.ai_scored_at).length;
+  const noPrice = S.vehicles.filter(v=>v.status==="available" && v.price==null);
+  const overdue = open.filter(l=>l.next_follow_up && l.next_follow_up < now.toISOString().slice(0,10)).length;
+  const unanswered = open.filter(l=>l.source_platform==="website_form" && ["new","researching","qualified"].includes(l.status)).length;
+  const hotOpen = open.filter(l=>l.score>=80).length;
+
+  // recommendations (rules applied to the numbers above)
+  const recs=[];
+  if (unanswered) recs.push(`Reply to the ${unanswered} website enquir${unanswered>1?"ies":"y"} still waiting — direct enquiries are your highest-converting leads.`);
+  if (overdue) recs.push(`${overdue} follow-up${overdue>1?"s are":" is"} overdue. Clear these before chasing new leads.`);
+  if (hotOpen) recs.push(`${hotOpen} hot lead${hotOpen>1?"s":""} (80+) still open — prioritise calls/replies to these today.`);
+  if (draftN) recs.push(`${draftN} outreach draft${draftN>1?"s are":" is"} waiting for approval.`);
+  if (noPrice.length) recs.push(`Add a price to: ${noPrice.map(vehTitle).join(", ")}. Leads can't be matched on budget without it, and "Call for price" listings get fewer enquiries.`);
+  if (srcRows[0] && srcRows[0].ql) recs.push(`${srcRows[0].lab} is producing your most qualified leads — spend more time there.`);
+  if (pool.length && unknownBud/pool.length>0.5) recs.push(`Most leads haven't shared a budget. Ask early ("what range are you hoping to stay in?") — it makes matching much faster.`);
+  const stocked = new Set(S.vehicles.filter(v=>v.status==="available").map(v=>(v.body_type||"").toLowerCase()));
+  typeRows.filter(([k])=>BODY[k] && !stocked.has(k)).slice(0,2).forEach(([k,n])=>recs.push(`${n} open lead${n>1?"s want":" wants"} ${k==="suv"?"an SUV":"a "+k} and you have none available — consider sourcing one.`));
+  if (typeRows[0]) recs.push(`Instagram idea: a short walkaround or "what $X gets you" video aimed at people looking for ${typeRows[0][0]==="first car"?"a first car":typeRows[0][0]==="AWD/4WD"?"AWD for winter":(typeRows[0][0]==="suv"?"an SUV":"a "+typeRows[0][0])} — the most requested this period.`);
+  if (!cur.length) recs.push(`No new leads this period. Link cargo-dealership.com/#enquire in your Instagram bio and every post, and spend 10 minutes a day pasting local "looking for a car" posts into Research a Lead.`);
+  if (!runs.length) recs.push(`No research was run this period. Use Research a Lead on Facebook-group posts, or ask Claude in chat to search for local buyers.`);
+
+  const tbl = (head, rows) => rows.length ? `<div class="tablewrap"><table><thead><tr>${head.map(h=>`<th>${h}</th>`).join("")}</tr></thead><tbody>${rows.map(r=>`<tr style="cursor:default">${r.map(c=>`<td>${c}</td>`).join("")}</tr>`).join("")}</tbody></table></div>` : `<div class="muted small">No data yet.</div>`;
+  const bars = (rows, total) => rows.length ? rows.map(([k,n])=>`<div style="display:grid;grid-template-columns:120px 1fr 32px;gap:10px;align-items:center;margin-bottom:6px"><span class="small">${esc(k)}</span><div class="bar"><i style="width:${n/Math.max(1,total)*100}%"></i></div><b class="small">${n}</b></div>`).join("") : `<div class="muted small">No data yet.</div>`;
+  const maxT = Math.max(1,...typeRows.map(r=>r[1]));
+  const kpi = [["New leads",cur.length,delta(cur.length,prev.length)],["Website enquiries",enq,""],["Messages sent",sentN,""],["Appointments (next 7 days)",apptNow,""],["Sales",soldNow,""],["Research runs",runs.length,`${runs.reduce((a,r)=>a+(r.results_count||0),0)} leads saved`]];
+
+  V.innerHTML = `
+  <div class="top"><h2>Sales report</h2><div style="display:flex;gap:8px;align-items:center"><select id="rpDays" style="width:auto">${opts([["7","Last 7 days"],["14","Last 14 days"],["30","Last 30 days"]],String(REPORT_DAYS))}</select><button class="btn ghost" id="rpPrint">🖨 Print / save PDF</button></div></div>
+  <p class="muted small" style="margin-top:-8px">${fmtDate(start)} – ${fmtDate(now)} · Car-Go Dealership Inc. · generated ${fmtDT(now)}</p>
+  <div class="sec">Verified numbers — counted from your CRM</div>
+  <div class="grid kpis">${kpi.map(([k,v,dl])=>`<div class="kpi"><small>${k}</small><b>${v}</b>${dl?`<div class="muted small">${dl}${k==="New leads"?" vs previous period":""}</div>`:""}</div>`).join("")}</div>
+  <div class="grid two" style="margin-top:14px">
+    <div class="panel"><h3>Best-performing sources (all time)</h3>${tbl(["Source","This period","Total","Qualified+","Sold","Avg score"], srcRows.map(r=>[esc(r.lab),r.c,r.all,r.ql,r.sold,r.avg??"–"]))}</div>
+    <div class="panel"><h3>Most requested vehicle types (open leads)</h3>${bars(typeRows.map(([k,n])=>[k==="suv"?"SUV":k[0].toUpperCase()+k.slice(1),n]),maxT)}</div>
+  </div>
+  <div class="grid two" style="margin-top:14px">
+    <div class="panel"><h3>Customer budgets</h3>${bars(buckets.map(b=>[b[0],bud[b[0]]||0]).filter(r=>r[1]).concat(unknownBud?[["Not stated",unknownBud]]:[]), Math.max(1,pool.length))}</div>
+    <div class="panel"><h3>Where leads are</h3>${bars(Object.entries(locs).sort((a,b)=>b[1]-a[1]).slice(0,8), Math.max(1,...Object.values(locs)))}</div>
+  </div>
+  <div class="panel" style="margin-top:14px"><h3>Inventory vs. demand</h3>
+    ${tbl(["Vehicle","Price","Open leads matched"], vehDemand.map(x=>[esc(vehTitle(x.v)), x.v.price!=null?money(x.v.price):'<span class="muted">not set</span>', x.n]))}
+    <p class="muted small" style="margin:10px 0 0">${unmatched} scored open lead${unmatched===1?"":"s"} with no matching car in stock.</p></div>
+  <div class="sec">Recommendations — generated by rules from the numbers above (suggestions, not facts)</div>
+  <div class="panel"><ol style="margin:0;padding-left:20px;display:grid;gap:8px">${recs.map(r=>`<li>${esc(r)}</li>`).join("")}</ol></div>`;
+  $("#rpDays").onchange = e => { REPORT_DAYS=Number(e.target.value); renderReports(); };
+  $("#rpPrint").onclick = () => window.print();
 }
 
 /* ---------- settings ---------- */
