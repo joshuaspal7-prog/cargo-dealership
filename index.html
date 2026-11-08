@@ -47,7 +47,8 @@ footer h4{color:#fff;margin:0 0 10px}footer a{text-decoration:none}footer a:hove
 .heroLogo{width:min(260px,70vw);border-radius:22px;box-shadow:0 12px 40px rgba(0,0,0,.45);margin:0 auto 26px;display:block}
 .about{display:grid;grid-template-columns:1.3fr 1fr;gap:30px;align-items:center}
 .about p{font-size:1.05rem;color:var(--ink);margin:0 0 14px}
-.vals{display:grid;gap:14px}.val{background:var(--card);border:1px solid var(--line);border-left:5px solid var(--brand);border-radius:12px;padding:16px 18px}.val b{display:block;margin-bottom:2px}.val span{color:var(--mute);font-size:.93rem}
+.vals{display:grid;gap:14px}.val{background:var(--card);border:1px solid var(--line);border-left:5px solid var(--brand);border-radius:12px;padding:16px 18px}.val{transition:transform .22s ease,box-shadow .22s ease,border-color .22s ease,border-left-width .22s ease,background .22s ease;cursor:default}.val b{transition:color .22s ease}.val:hover,.val:active{transform:translateX(8px) translateY(-3px);box-shadow:0 12px 30px rgba(200,16,46,.22);border-color:var(--brand);border-left-width:9px;background:linear-gradient(90deg,rgba(200,16,46,.10),var(--card) 60%)}.val:hover b,.val:active b{color:var(--brand)}@media (prefers-reduced-motion:reduce){.val,.val b{transition:none}.val:hover,.val:active{transform:none}}
+.val b{display:block;margin-bottom:2px}.val span{color:var(--mute);font-size:.93rem}
 .cfx{display:inline-flex;align-items:center;gap:6px;width:fit-content;font-size:.85rem;font-weight:700;text-decoration:none;color:var(--brand);border:1px solid var(--brand);border-radius:8px;padding:6px 10px;margin-bottom:8px}.cfx:hover{background:var(--brand);color:#fff}
 .flogo{width:44px;height:44px;object-fit:cover;border-radius:10px}.fg h4{display:flex;align-items:center;gap:10px;min-height:44px;margin:0 0 8px}.fg p{margin:0;line-height:1.7}.fg{align-items:start}
 @media(max-width:760px){.about{grid-template-columns:1fr}}
