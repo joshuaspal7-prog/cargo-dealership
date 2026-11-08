@@ -1,1 +1,14 @@
-[]
+[
+  {
+    "rating": 5,
+    "name": "Yousif F.",
+    "date": "Google review",
+    "text": "good place to purchase a vehicle. very friendly staff and easy proccess."
+  },
+  {
+    "rating": 5,
+    "name": "Jeydie C.",
+    "date": "Google review",
+    "text": "The website is very easy to use and navigate. Everything is well-organized, making it simple to find what I need. The design looks clean and professional, which makes the experience even better. I also like how fast the pages load and how smoothly everything works. Overall, I had a great experience and would definitely recommend this website to others."
+  }
+]
