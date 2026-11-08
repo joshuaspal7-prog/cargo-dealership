@@ -23,6 +23,15 @@ nav{display:flex;gap:18px;flex-wrap:wrap}nav a{text-decoration:none;font-weight:
 .btn:hover{filter:brightness(1.07)}.btn.alt{background:var(--brand);color:#fff}.btn.sm{padding:8px 14px;font-size:.85rem}.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--mute)}
 .perks{max-width:1100px;margin:-40px auto 0;padding:0 20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
 .perk{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;box-shadow:0 6px 20px rgba(0,0,0,.08)}.perk b{display:block;margin-bottom:4px}.perk span{color:var(--mute);font-size:.92rem}
+.perk{position:relative;overflow:hidden;transition:transform .25s ease,box-shadow .25s ease,border-color .25s ease;cursor:default}
+.perk::after{content:"";position:absolute;left:0;bottom:0;height:4px;width:0;background:linear-gradient(90deg,var(--brand),var(--accent));transition:width .3s ease}
+.perk .pi{display:grid;place-items:center;width:52px;height:52px;border-radius:14px;background:rgba(200,16,46,.12);color:var(--brand);margin-bottom:14px;transition:background .25s ease,color .25s ease,transform .25s ease}
+.perk b{font-size:1.1rem;transition:color .25s ease}
+.perk:hover,.perk:active{transform:translateY(-8px);box-shadow:0 18px 40px rgba(200,16,46,.25);border-color:var(--brand)}
+.perk:hover::after,.perk:active::after{width:100%}
+.perk:hover .pi,.perk:active .pi{background:var(--brand);color:#fff;transform:scale(1.1) rotate(-6deg)}
+.perk:hover b,.perk:active b{color:var(--brand)}
+@media (prefers-reduced-motion:reduce){.perk,.perk .pi,.perk::after{transition:none}.perk:hover,.perk:active,.perk:hover .pi{transform:none}}
 section{max-width:1100px;margin:auto;padding:60px 20px 10px}
 h2{font-size:1.9rem;margin:0 0 6px;letter-spacing:-.5px}.sub{color:var(--mute);margin:0 0 26px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:20px}
@@ -98,9 +107,9 @@ footer h4{color:#fff;margin:0 0 10px}footer a{text-decoration:none}footer a:hove
 </div>
 
 <div class="perks">
-<div class="perk"><b>Quality checked</b><span>Every vehicle is inspected before it hits our lot.</span></div>
-<div class="perk"><b>Honest pricing</b><span>Clear, upfront prices with no pressure.</span></div>
-<div class="perk"><b>Friendly service</b><span>Visit, call or email. We’re happy to help.</span></div>
+<div class="perk"><i class="pi"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/><path d="M8.5 12l2.5 2.5L15.5 10"/></svg></i><b>Quality checked</b><span>Every vehicle is inspected before it hits our lot.</span></div>
+<div class="perk"><i class="pi"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.6 13.4l-7.2 7.2a2 2 0 01-2.8 0L3 13V3h10l7.6 7.6a2 2 0 010 2.8z"/><circle cx="7.5" cy="7.5" r="1.3"/></svg></i><b>Honest pricing</b><span>Clear, upfront prices with no pressure.</span></div>
+<div class="perk"><i class="pi"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.8 5.6a5 5 0 00-7.1 0L12 7.3l-1.7-1.7a5 5 0 00-7.1 7.1L12 21.5l8.8-8.8a5 5 0 000-7.1z"/></svg></i><b>Friendly service</b><span>Visit, call or email. We’re happy to help.</span></div>
 </div>
 
 <section id="about">
