@@ -71,6 +71,7 @@ footer h4{color:#fff;margin:0 0 10px}footer a{text-decoration:none}footer a:hove
 .lb .lx{top:max(14px,env(safe-area-inset-top));right:14px}.lb .lp{left:14px;top:50%;margin-top:-24px}.lb .ln{right:14px;top:50%;margin-top:-24px}
 .lb .lc{position:absolute;bottom:max(16px,env(safe-area-inset-bottom));left:0;right:0;text-align:center;color:#ddd;font-size:.9rem}
 .gsum{margin-top:16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:1.05rem}.gsum .stars{color:#f5b301;font-size:1.35rem;letter-spacing:2px}.gsum span:last-child{color:var(--mute)}
+.hello{display:flex;flex-wrap:wrap;gap:10px;margin-top:6px}
 .thumbs{display:flex;gap:8px;padding:10px 20px 0;overflow-x:auto}.thumbs img{width:72px;height:54px;object-fit:cover;border-radius:8px;border:2px solid transparent;cursor:pointer}.thumbs img.on{border-color:var(--brand)}
 .db{padding:20px}.db h3{margin:0 0 4px;font-size:1.5rem}.db .price{font-size:1.7rem;margin-bottom:10px}
 .specs{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin:14px 0}
@@ -113,7 +114,7 @@ footer h4{color:#fff;margin:0 0 10px}footer a{text-decoration:none}footer a:hove
 <p>We believe that buying a car should be straightforward, transparent, and stress-free. Every customer deserves honest communication, personal attention, and the confidence that they are making the right choice.</p>
 <p>At Car-Go, we’re not just here to sell cars. We’re here to build relationships, earn trust, and make every customer feel like part of the family.</p>
 <p><b>Car-Go Dealership Inc. — Driven by passion. Built on trust.</b></p>
-<a class="btn alt" href="https://www.google.com/maps/search/?api=1&query=Car-Go+Dealership+Inc%2C+257+Centennial+Pkwy+N%2C+Hamilton%2C+ON+L8E+2X3" target="_blank" rel="noopener">Come say hello — get directions</a>
+<div class="hello"><a class="btn alt" href="https://www.google.com/maps/search/?api=1&query=Car-Go+Dealership+Inc%2C+257+Centennial+Pkwy+N%2C+Hamilton%2C+ON+L8E+2X3" target="_blank" rel="noopener">Come say hello — get directions</a><a class="btn alt" href="tel:4168438036">Call 416-843-8036</a><a class="btn alt mailgen" href="mailto:CarGodealership@gmail.com">Email us</a></div>
 </div>
 <div class="vals">
 <div class="val"><b>Honesty</b><span>Straight answers about every vehicle, good and bad.</span></div>
@@ -155,7 +156,7 @@ footer h4{color:#fff;margin:0 0 10px}footer a{text-decoration:none}footer a:hove
 <footer id="contact"><div class="fg">
 <div><h4><img class="flogo" src="logo.jpg" alt="Car-Go logo">Car-Go Dealership Inc.</h4><p>Your trusted Hamilton dealership for quality pre-owned vehicles.</p></div>
 <div><h4>Visit us</h4><p>257 Centennial Pkwy N<br>Hamilton, ON L8E 2X3</p></div>
-<div><h4>Get in touch</h4><p>Phone: <a href="tel:4168438036">416-843-8036</a><br>Email: <a href="mailto:CarGodealership@gmail.com">CarGodealership@gmail.com</a></p></div>
+<div><h4>Get in touch</h4><p>Phone: <a href="tel:4168438036">416-843-8036</a><br>Email: <a class="mailgen" href="mailto:CarGodealership@gmail.com">CarGodealership@gmail.com</a></p></div>
 </div><div class="copy">© 2026 Car-Go Dealership Inc. All rights reserved.</div></footer>
 
 <div class="lb" id="lb" role="dialog" aria-modal="true" aria-label="Photo viewer"><button class="lx" id="lx" aria-label="Close photo">&times;</button><button class="lp" id="lp" aria-label="Previous photo">&#8249;</button><img id="li" alt=""><button class="ln" id="ln" aria-label="Next photo">&#8250;</button><div class="lc" id="lc"></div></div>
@@ -164,6 +165,7 @@ footer h4{color:#fff;margin:0 0 10px}footer a{text-decoration:none}footer a:hove
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const mail=d=>{const sub="Inquiry: "+d.year+" "+d.make+" "+d.model;return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)?"mailto:CarGodealership@gmail.com?subject="+encodeURIComponent(sub):"https://mail.google.com/mail/?view=cm&fs=1&to=CarGodealership@gmail.com&su="+encodeURIComponent(sub)};
+if(!/Android|iPhone|iPad|iPod/i.test(navigator.userAgent))document.querySelectorAll("a.mailgen").forEach(a=>{a.href="https://mail.google.com/mail/?view=cm&fs=1&to=CarGodealership@gmail.com&su="+encodeURIComponent("Question about Car-Go Dealership");a.target="_blank";a.rel="noopener"});
 const money=v=>Number(v)>0?"$"+Number(v).toLocaleString("en-CA"):"Call for price";
 const safe=u=>/^(https?:\/\/|[\w\-./]+$)/i.test(u||"")?esc(u):"";
 /* Inventory comes live from the Car-Go CRM (read-only public view). Falls back to cars.json if the CRM can't be reached. */
