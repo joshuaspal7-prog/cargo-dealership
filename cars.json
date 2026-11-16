@@ -79,7 +79,6 @@
     ],
     "img": "https://cargo-dealership.com/crv-1.jpg",
     "carfax": "https://cargo-dealership.com/crv-carfax.pdf",
-    "price": 17630.0,
     "sold": false,
     "pending": false
   }
